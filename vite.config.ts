@@ -13,7 +13,7 @@ export default {
       output: {
         entryFileNames: assetInfo => {
           return assetInfo.name === 'coi-serviceworker'
-            ? 'assets/js/coi-serviceworker.min.js'
+            ? 'coi-serviceworker.min.js'
             : 'assets/js/[name]-[hash].js'
         }
       },
