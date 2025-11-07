@@ -60,11 +60,11 @@ function createGui() {
     });
     folder.close();
 
-    statsPanel.dom.style.display = settings.showStats ? 'block' : 'none';
     // We override the style via css file
     statsPanel.dom.id = 'stats-panel';
     statsPanel.dom.style.cssText = '';
     document.body.appendChild(statsPanel.dom);
+    statsPanel.dom.style.display = settings.showStats ? 'block' : 'none';
 }
 
 function animate(_time: DOMHighResTimeStamp, _frame: XRFrame) {
