@@ -19,9 +19,8 @@ body {
 
 #stats-panel {
 	position: absolute;
-	left: 100%;
-	top: 100%;
-	transform: translate(-100%, -100%);
+	right: 0;
+	bottom: 0;
 	cursor: pointer;
 	opacity: 0.8;
 	z-index: 10000;
