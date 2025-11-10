@@ -26,6 +26,10 @@ body {
 	z-index: 10000;
 }
 
+#file-input {
+	display: none;
+}
+
 .lil-gui {
 	/* Look ma, I'm a designer! */
 	--font-size: 14px;
