@@ -39,3 +39,9 @@ body {
 	--widget-height: 24px;
 	--widget-border-radius: 3px;
 }
+
+.lil-gui.lil-root {
+	position: absolute;
+	top: 5px;
+	left: 5px;
+}
