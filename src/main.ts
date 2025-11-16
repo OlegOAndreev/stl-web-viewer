@@ -18,10 +18,7 @@ import {
 } from 'three';
 import Stats from 'three/addons/libs/stats.module.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import {
-    BufferGeometryUtils,
-    TrackballControls
-} from 'three/examples/jsm/Addons.js';
+import { TrackballControls } from 'three/examples/jsm/Addons.js';
 
 const fov = 80;
 const nearZ = 0.1;
@@ -94,8 +91,7 @@ const materials = {
 
 type PreparedModel = {
     geo: BufferGeometry,
-    // mergedGeo is geo with indexed vertices
-    mergedGeo: BufferGeometry,
+    edges: EdgesGeometry,
     mesh: Mesh,
     wireframeLines: LineSegments,
 }
@@ -136,9 +132,9 @@ function createGui(): GUI {
             const file = target.files![0];
 
             const reader = new FileReader();
-            reader.onload = () => {
-                onLoadFile(file.name, reader.result as ArrayBuffer);
-                saveFile(file.name, reader.result as ArrayBuffer);
+            reader.onload = async () => {
+                await onLoadFile(file.name, reader.result as ArrayBuffer);
+                await saveFile(file.name, reader.result as ArrayBuffer);
             };
             reader.onerror = () => console.log("File loading failed");
             reader.readAsArrayBuffer(file);
@@ -291,16 +287,15 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
         geo.computeBoundingSphere();
     }
 
-    const mergedGeo = BufferGeometryUtils.mergeVertices(geo);
-    const edges = new EdgesGeometry(mergedGeo, 0.01);
-    const mesh = new Mesh(mergedGeo, materials.basic);
+    const edges = new EdgesGeometry(geo, 0.01);
+    const mesh = new Mesh(geo, materials.basic);
     const wireframeLines = new LineSegments(edges, materials.wireframe);
     scene.add(mesh);
     scene.add(wireframeLines);
 
     const result = {
         geo: geo,
-        mergedGeo: mergedGeo,
+        edges: edges,
         mesh: mesh,
         wireframeLines: wireframeLines,
     };
@@ -312,17 +307,13 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
 
 function disposeModel(model: PreparedModel) {
     model.geo.dispose();
-    model.mergedGeo.dispose();
+    model.edges.dispose();
     scene.remove(model.mesh);
     scene.remove(model.wireframeLines);
 }
 
 function updateModelVisibility(model: PreparedModel, showWireframe: boolean) {
-    if (showWireframe) {
-        model.mesh.visible = false;
-    } else {
-        model.mesh.visible = true;
-    }
+    model.mesh.visible = !showWireframe;
 }
 
 function updateCameraForModel(model: PreparedModel) {
@@ -341,8 +332,12 @@ function updateCameraForModel(model: PreparedModel) {
     curControls.update();
 }
 
-function unloadModel() {
-    saveFile('', new ArrayBuffer());
+function splitGeometryIntoParts(geo: BufferGeometry): BufferGeometry[] {
+    return null
+}
+
+async function unloadModel() {
+    await saveFile('', new ArrayBuffer());
     setTitle('');
     disposeModel(curModel);
     curModel = createDefaultModel();
