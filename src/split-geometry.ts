@@ -152,8 +152,7 @@ export function splitDisjointGeometry(geo: BufferGeometry): BufferGeometry[] {
             return;
         }
         // Separately process the fast case: only one triangle has the matching edge.
-        const nextTriIdx = findNextTriangle(v1, v2, v3, tris);
-        // const nextTriIdx = (tris.length === 1) ? tris[0].triIdx : findNextTriangle(v1, v2, v3, tris);
+        const nextTriIdx = (tris.length === 1) ? tris[0].triIdx : findNextTriangle(v1, v2, v3, tris);
         if (!visited[nextTriIdx]) {
             visited[nextTriIdx] = true;
             queue.push(nextTriIdx);
