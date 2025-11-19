@@ -295,6 +295,10 @@ async function onLoadFile(filename: string, contents: ArrayBuffer) {
 }
 
 function createDefaultModel(): PreparedModel {
+    if (settings.latestModelName !== '') {
+        // We are called during start up and the model is being loaded right now.
+        return createModelFromGeo(new BufferGeometry().setFromPoints([]));
+    }
     const box1 = new BoxGeometry(0.25, 5, 1);
     const box2 = new BoxGeometry(0.25, 5, 1);
     box2.translate(10, 0, 0);
