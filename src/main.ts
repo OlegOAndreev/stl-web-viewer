@@ -343,7 +343,7 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
         const mesh = new Mesh(part);
         meshes.push(mesh);
         scene.add(mesh);
-        const edges = new EdgesGeometry(part, 0.01);
+        const edges = new EdgesGeometry(part, 10);
         const wireframe = new LineSegments(edges, materials.wireframe);
         wireframes.push(wireframe);
         scene.add(wireframe);
@@ -362,12 +362,6 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
     updateModelMaterials(result);
     updateNormalsVisibility(result);
     updateCameraForModel(modelCenter, modelRadius);
-    // for (let i = 0; i < 2; i++) {
-    //     if (i !== 0) {
-    //         meshes[i].visible = false;
-    //         wireframes[i].visible = false;
-    //     }
-    // }
     return result;
 }
 
@@ -452,7 +446,7 @@ function createBasicMaterial(color: number) {
     return new MeshPhongMaterial({
         color: color,
         side: FrontSide,
-        flatShading: true,
+        flatShading: false,
         // Offset polygons just a bit so that the lines do not z-fight with them. Replace lines with polygonal lines?
         polygonOffset: true,
         polygonOffsetFactor: 1.0,
@@ -463,6 +457,7 @@ function createBasicMaterial(color: number) {
 // Prepare both positive and negative normals for debugging visualization. Model radius is used to heuristically
 // set the normal length.
 function prepareNormals(geo: BufferGeometry, modelRadius: number): LineSegments[] {
+    // TODO: Move to a separate split-geometry and add tests.
     if (geo.index != null) {
         geo = geo.toNonIndexed();
     }
