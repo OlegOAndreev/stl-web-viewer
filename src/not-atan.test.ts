@@ -1,5 +1,6 @@
 import { assert, test } from 'vitest'
-import { notAtan2 } from './split-geometry'
+
+import { notAtan2 } from './not-atan'
 
 test('notAtan2 boundaries', () => {
     // We test all possible combinations of values.
@@ -67,5 +68,3 @@ test('notAtan2 consistent order', () => {
         }
     }
 });
-
-// TODO: Add tests for splitDisjointGeometry

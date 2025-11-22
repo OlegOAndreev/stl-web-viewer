@@ -2,7 +2,6 @@ import GUI from 'lil-gui';
 import {
     AmbientLight,
     BoxGeometry,
-    BufferAttribute,
     BufferGeometry,
     Color,
     CylinderGeometry,
@@ -25,6 +24,7 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { BufferGeometryUtils, TrackballControls } from 'three/examples/jsm/Addons.js';
 
 import { splitDisjointGeometry } from './split-geometry';
+import { computeTriangleNormals } from './triangle-normals';
 
 const fov = 80;
 const nearZ = 0.1;
@@ -100,10 +100,10 @@ const materials = {
     wireframe: new LineBasicMaterial({
         color: lineColor,
     }),
-    positiveNormal: new LineBasicMaterial({
+    outwardNormal: new LineBasicMaterial({
         color: positiveNormalColor,
     }),
-    negativeNormal: new LineBasicMaterial({
+    inwardNormal: new LineBasicMaterial({
         color: negativeNormalColor,
     }),
 };
@@ -177,7 +177,7 @@ function createGui(): GUI {
         .name('Enable light')
         .onChange((v: boolean) => directionalLight.visible = v);
     rFolder.add(settings, 'withColors')
-        .name("Color parts")
+        .name('Color parts')
         .onChange((_: boolean) => updateModelMaterials(curModel))
     rFolder.close();
 
@@ -185,7 +185,7 @@ function createGui(): GUI {
     miscFolder.add((() => unloadModel()) as CallableFunction, 'call')
         .name('Unload File');
     miscFolder.add(settings, 'showNormals')
-        .name("Show normals")
+        .name('Show normals')
         .onChange((_: boolean) => updateNormalsVisibility(curModel))
     miscFolder.add(settings, 'showStats')
         .name('Show stats')
@@ -332,7 +332,7 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
     }
 
     const parts = splitDisjointGeometry(geo);
-    const normals = prepareNormals(geo, modelRadius);
+    const normals = prepareNormals(geo);
     geo.dispose();
 
     console.log(`Model got split into ${parts.length} parts`);
@@ -411,6 +411,7 @@ function updateCameraForModel(modelCenter: Vector3, modelRadius: number) {
     viewSize.orthoCameraSize = modelRadius * 2;
     updateOrthoCameraDimensions();
     orthoCamera.position.z += modelRadius * 2;
+    // TODO: Fix pan speed for large models
     // curControls.panSpeed = modelRadius * 1.5;
     curControls.update();
 }
@@ -454,49 +455,10 @@ function createBasicMaterial(color: number) {
     });
 }
 
-// Prepare both positive and negative normals for debugging visualization. Model radius is used to heuristically
-// set the normal length.
-function prepareNormals(geo: BufferGeometry, modelRadius: number): LineSegments[] {
-    // TODO: Move to a separate split-geometry and add tests.
-    if (geo.index != null) {
-        geo = geo.toNonIndexed();
-    }
-
-    const positionAttr = geo.getAttribute('position');
-    if (!positionAttr) {
-        throw new Error('Geometry does not have position attribute');
-    }
-    if (!(positionAttr instanceof BufferAttribute)) {
-        throw new Error('Interleaved buffer position attribute not supported');
-    }
-    const pos = positionAttr.array;
-    const triCount = pos.length / 9;
-    const points: Vector3[] = new Array(triCount * 2);
-    const negativePoints: Vector3[] = new Array(triCount * 2);
-    const v1 = new Vector3();
-    const v2 = new Vector3();
-    const v3 = new Vector3();
-    const tmp = new Vector3();
-    for (let triIdx = 0; triIdx < triCount; triIdx++) {
-        const off = triIdx * 9;
-        v1.set(pos[off], pos[off + 1], pos[off + 2]);
-        v2.set(pos[off + 3], pos[off + 4], pos[off + 5]);
-        v3.set(pos[off + 6], pos[off + 7], pos[off + 8]);
-        const midpoint = v1.clone().add(v2).add(v3)
-            .divideScalar(3.0);
-        const normal = v2.clone().sub(v1)
-            .cross(tmp.copy(v3).sub(v1))
-            .setLength(modelRadius / 25.0);
-        const negativeNormal = midpoint.clone().sub(normal);
-        normal.add(midpoint);
-
-        points[triIdx * 2] = midpoint;
-        points[triIdx * 2 + 1] = normal;
-        negativePoints[triIdx * 2] = midpoint;
-        negativePoints[triIdx * 2 + 1] = negativeNormal;
-    }
+function prepareNormals(geo: BufferGeometry): LineSegments[] {
+    const [outwardPoints, inwardPoints] = computeTriangleNormals(geo);
     return [
-        new LineSegments(new BufferGeometry().setFromPoints(points), materials.positiveNormal),
-        new LineSegments(new BufferGeometry().setFromPoints(negativePoints), materials.negativeNormal),
+        new LineSegments(outwardPoints, materials.outwardNormal),
+        new LineSegments(inwardPoints, materials.inwardNormal),
     ];
 }
