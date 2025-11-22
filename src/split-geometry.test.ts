@@ -173,14 +173,14 @@ function getTris(geo: BufferGeometry): Set<string> {
 
 function assertEqualSet(actual: Set<string>, expected: Set<string>) {
     assert.equal(actual.size, expected.size);
-    for (let key of actual.keys()) {
+    for (const key of actual.keys()) {
         assert(expected.has(key), `Triangle ${key} not expected in ${setToString(expected)}`);
     }
 }
 
 function setToString(s: Set<string>): string {
     let r = '';
-    for (let key of s) {
+    for (const key of s) {
         r += key;
         r += ' , ';
     }
