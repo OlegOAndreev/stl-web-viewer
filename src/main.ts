@@ -1,4 +1,4 @@
-import GUI, { Controller } from 'lil-gui';
+import GUI from 'lil-gui';
 import {
     AmbientLight,
     BoxGeometry,
@@ -23,10 +23,10 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { BufferGeometryUtils, TrackballControls } from 'three/examples/jsm/Addons.js';
 
+import MainModuleFactory from '../wasm/build/main-wasm-module.js';
 import { splitDisjointGeometry } from './split-geometry';
 import { stupidMicroBenchmark } from './stupid-microbenchmark';
 import { computeTriangleNormals } from './triangle-normals';
-import MainModuleFactory from '../wasm/build/main-wasm-module.js';
 
 const mainModule = await MainModuleFactory();
 

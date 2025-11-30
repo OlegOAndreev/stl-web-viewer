@@ -1,6 +1,6 @@
-#include <cmath>
-
 #include <emscripten/emscripten.h>
+
+#include <cmath>
 
 // An alternative to atan2 when all you need is comparing angles. It all values of y/x to the range (-PI, PI) and keeps
 // almost the same order as atan2: notAtan2(y1, x1) < notAtan2(y2, x2) is true when atan2(y1, x1) < atan2(y2, x2) is
@@ -30,4 +30,8 @@ extern "C" EMSCRIPTEN_KEEPALIVE float notAtan2(float y, float x) {
         // y = -0.0f should return normalized - M_PI
         return normalized + std::copysign(M_PI, y);
     }
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE float stdAtan2(float y, float x) {
+    return std::atan2(y, x);
 }
