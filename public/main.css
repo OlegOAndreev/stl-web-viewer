@@ -30,13 +30,14 @@ body {
 	position: absolute;
 	right: 5px;
 	top: 5px;
-	opacity: 0.8;
 	font-size: 10px;
 	background-color: #002;
 	color: #DDE;
+	cursor: grab;
 	font-family: Helvetica, Arial, sans-serif;
 	white-space: pre-wrap;
 	padding: 5px;
+	user-select: none;
 	z-index: 10000;
 }
 

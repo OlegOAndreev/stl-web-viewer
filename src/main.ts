@@ -205,7 +205,7 @@ function createGui(): GUI {
     miscFolder.add((() => {
         const results = stupidMicroBenchmark(mainModule);
         stupidMicroBenchmarkResults.style.display = 'block';
-        stupidMicroBenchmarkResults.textContent = results;
+        stupidMicroBenchmarkResults.textContent = results + '\n[Click to copy]';
     }) as CallableFunction, 'call').name('Run stupid microbenchmark');
     miscFolder.close();
 
