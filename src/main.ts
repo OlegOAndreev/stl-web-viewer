@@ -1,4 +1,4 @@
-import GUI from 'lil-gui';
+import GUI, { Controller } from 'lil-gui';
 import {
     AmbientLight,
     BoxGeometry,
@@ -24,7 +24,11 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { BufferGeometryUtils, TrackballControls } from 'three/examples/jsm/Addons.js';
 
 import { splitDisjointGeometry } from './split-geometry';
+import { stupidMicroBenchmark } from './stupid-microbenchmark';
 import { computeTriangleNormals } from './triangle-normals';
+import MainModuleFactory from '../wasm/build/main-wasm-module.js';
+
+const mainModule = await MainModuleFactory();
 
 const fov = 80;
 const nearZ = 0.1;
@@ -192,6 +196,17 @@ function createGui(): GUI {
         .onChange((v: boolean) => {
             statsPanel.dom.style.display = v ? 'block' : 'none';
         });
+
+    const stupidMicroBenchmarkResults = document.getElementById('stupid-micro-benchmark-results');
+    if (!stupidMicroBenchmarkResults) {
+        throw new Error('Element with id "stupid-micro-benchmark-results" not found');
+    }
+    stupidMicroBenchmarkResults.style.display = 'none';
+    miscFolder.add((() => {
+        const results = stupidMicroBenchmark(mainModule);
+        stupidMicroBenchmarkResults.style.display = 'block';
+        stupidMicroBenchmarkResults.textContent = results;
+    }) as CallableFunction, 'call').name('Run stupid microbenchmark');
     miscFolder.close();
 
     return gui;
@@ -289,9 +304,17 @@ async function onLoadFile(filename: string, contents: ArrayBuffer) {
 
     disposeModel(curModel);
     const stlLoader = new STLLoader();
-    curModel = createModelFromGeo(stlLoader.parse(contents));
+    let startTime = performance.now();
+    const stlGeo = stlLoader.parse(contents);
+    let deltaTime = performance.now() - startTime;
+    console.log(`Loading ${filename} took ${deltaTime}ms`);
 
-    console.log(`Loaded file ${filename}`);
+    startTime = performance.now();
+    curModel = createModelFromGeo(stlGeo);
+    deltaTime = performance.now() - startTime;
+    console.log(`Creating model from geo for ${filename} took ${deltaTime}ms`);
+
+    console.log(`Successfully loaded file ${filename}`);
 }
 
 function createDefaultModel(): PreparedModel {

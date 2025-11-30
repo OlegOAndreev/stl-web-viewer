@@ -26,12 +26,21 @@ body {
 	z-index: 10000;
 }
 
-#file-input {
-	display: none;
+#stupid-micro-benchmark-results {
+	position: absolute;
+	right: 5px;
+	top: 5px;
+	opacity: 0.8;
+	font-size: 10px;
+	background-color: #002;
+	color: #DDE;
+	font-family: Helvetica, Arial, sans-serif;
+	white-space: pre-wrap;
+	padding: 5px;
+	z-index: 10000;
 }
 
 .lil-gui {
-	/* Look ma, I'm a designer! */
 	--font-size: 14px;
 	--input-font-size: 13px;
 	--padding: 5px;

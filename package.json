@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "eslint ./src/** && tsc && vite build",
+    "build": "npm run build:wasm && npm run build:ts",
+    "build:wasm": "./wasm/run-build.sh",
+    "build:ts": "eslint ./src/** && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest"
   },

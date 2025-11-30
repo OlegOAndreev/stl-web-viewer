@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
@@ -10,11 +9,11 @@
     <!-- This file should not be bundled -->
     <script src="coi-serviceworker.min.js"></script>
 </head>
-
 <body>
     <script type="module" src="/src/main.ts"></script>
-    <canvas id="threejs" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
-    <input type="file" id="file-input" accept=".stl" />
-</body>
 
+    <canvas id="threejs" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+    <input type="file" id="file-input" accept=".stl" style="display: none"></input>
+    <div id="stupid-micro-benchmark-results"></div>
+</body>
 </html>
