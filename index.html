@@ -9,12 +9,6 @@
     <link rel="icon" href="data:;base64,=" />
     <!-- This file should not be bundled -->
     <script src="coi-serviceworker.min.js"></script>
-    <script>
-        function copyBenchmarkResultsToClipboard() {
-            const results = document.getElementById("stupid-micro-benchmark-results");
-            navigator.clipboard.writeText(results.textContent);
-        }
-    </script>
 </head>
 
 <body>
@@ -22,7 +16,7 @@
 
     <canvas id="threejs" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     <input type="file" id="file-input" accept=".stl" style="display: none"></input>
-    <div id="stupid-micro-benchmark-results" onclick="copyBenchmarkResultsToClipboard()"></div>
+    <div id="stupid-micro-benchmark-results"></div>
 </body>
 
 </html>

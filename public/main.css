@@ -33,7 +33,7 @@ body {
 	font-size: 10px;
 	background-color: #002;
 	color: #DDE;
-	cursor: grab;
+	cursor: pointer;
 	font-family: Helvetica, Arial, sans-serif;
 	white-space: pre-wrap;
 	padding: 5px;

@@ -202,6 +202,10 @@ function createGui(): GUI {
         throw new Error('Element with id "stupid-micro-benchmark-results" not found');
     }
     stupidMicroBenchmarkResults.style.display = 'none';
+    stupidMicroBenchmarkResults.onclick = () => {
+        navigator.clipboard.writeText(stupidMicroBenchmarkResults.textContent);
+        stupidMicroBenchmarkResults.style.display = 'none';
+    };
     miscFolder.add((() => {
         const results = stupidMicroBenchmark(mainModule);
         stupidMicroBenchmarkResults.style.display = 'block';
