@@ -5,7 +5,7 @@ import { notAtan2 } from "./not-atan";
 export function stupidMicroBenchmark(mainModule: MainModule & EmbindModule): string {
     console.log('Starting stupid microbenchmark');
     const totalStartTime = performance.now();
-    let result = '';
+    let result = navigator.userAgent + '\n';
     if (!window.crossOriginIsolated) {
         result += 'WARNING: Window is not cross-origin isolated, performance.now() precision is low\n\n';
     } else {

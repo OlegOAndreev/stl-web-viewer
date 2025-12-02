@@ -210,7 +210,7 @@ function createGui(): GUI {
     };
     miscFolder.add((() => {
         const results = stupidMicroBenchmark(mainModule);
-        stupidMicroBenchmarkResultsToCopy = navigator.userAgent + '\n' + results;
+        stupidMicroBenchmarkResultsToCopy = results;
         stupidMicroBenchmarkResults.style.display = 'block';
         stupidMicroBenchmarkResults.textContent = results + '\n[Click to copy]';
     }) as CallableFunction, 'call').name('Run stupid microbenchmark');

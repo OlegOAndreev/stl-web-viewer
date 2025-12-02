@@ -36,6 +36,7 @@ body {
 	cursor: pointer;
 	font-family: Helvetica, Arial, sans-serif;
 	white-space: pre-wrap;
+	max-width: 300px;
 	padding: 5px;
 	user-select: none;
 	z-index: 10000;
