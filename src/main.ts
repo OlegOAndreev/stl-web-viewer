@@ -54,6 +54,8 @@ const fancyColors = [
 const settingsKey = 'stl-web-viewer-settings';
 const savedModelName = 'latest-model';
 
+let stupidMicroBenchmarkResultsToCopy = '';
+
 const canvas = document.getElementById('threejs') as HTMLCanvasElement;
 if (!canvas) {
     throw new Error('Canvas element with id "threejs" not found');
@@ -203,11 +205,12 @@ function createGui(): GUI {
     }
     stupidMicroBenchmarkResults.style.display = 'none';
     stupidMicroBenchmarkResults.onclick = () => {
-        navigator.clipboard.writeText(stupidMicroBenchmarkResults.textContent);
+        navigator.clipboard.writeText(stupidMicroBenchmarkResultsToCopy);
         stupidMicroBenchmarkResults.style.display = 'none';
     };
     miscFolder.add((() => {
         const results = stupidMicroBenchmark(mainModule);
+        stupidMicroBenchmarkResultsToCopy = navigator.userAgent + '\n' + results;
         stupidMicroBenchmarkResults.style.display = 'block';
         stupidMicroBenchmarkResults.textContent = results + '\n[Click to copy]';
     }) as CallableFunction, 'call').name('Run stupid microbenchmark');

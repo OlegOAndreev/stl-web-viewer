@@ -4,6 +4,7 @@ import { notAtan2 } from "./not-atan";
 // This is the stupidest micro-benchmark, but still useful for getting an idea on how much the function call costs.
 export function stupidMicroBenchmark(mainModule: MainModule & EmbindModule): string {
     console.log('Starting stupid microbenchmark');
+    const totalStartTime = performance.now();
     let result = '';
     if (!window.crossOriginIsolated) {
         result += 'WARNING: Window is not cross-origin isolated, performance.now() precision is low\n\n';
@@ -109,5 +110,7 @@ export function stupidMicroBenchmark(mainModule: MainModule & EmbindModule): str
     result += `Array WASM std::atan2: ${arrayWasmStdAtan2}ms\n`;
     result += `Array WASM notAtan2: ${arrayWasmNotAtan2}ms\n`;
     result += `Array WASM embind notAtan2: ${arrayWasmEmbindNotAtan2}ms\n`;
+
+    console.log(`Finished stupid microbenchmark in ${performance.now() - totalStartTime}ms`)
     return result;
 }
