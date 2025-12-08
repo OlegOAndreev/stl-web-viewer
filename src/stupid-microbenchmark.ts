@@ -253,12 +253,12 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
     const rawPtrCopy100: string[] = [];
     const embindRawPtrCopy100: string[] = [];
     const embindCopy100: string[] = [];
-    const js1000: string[] = [];
-    const jsUntyped1000: string[] = [];
-    const rawPtrDirect1000: string[] = [];
-    const rawPtrCopy1000: string[] = [];
-    const embindRawPtrCopy1000: string[] = [];
-    const embindCopy1000: string[] = [];
+    const js10000: string[] = [];
+    const jsUntyped10000: string[] = [];
+    const rawPtrDirect10000: string[] = [];
+    const rawPtrCopy10000: string[] = [];
+    const embindRawPtrCopy10000: string[] = [];
+    const embindCopy10000: string[] = [];
     for (let i = 0; i < numTries; i++) {
         console.log(`Heap size ${module._getHeapSize()}, heap max: ${module._getMaxHeapSize()}, buffer: `, module.HEAPF32.buffer);
         let startTime = performance.now();
@@ -298,40 +298,40 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
         embindCopy100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
-        for (let j = 0; j < totalData / 1000; j++) {
-            tripleJs(1000);
+        for (let j = 0; j < totalData / 10000; j++) {
+            tripleJs(10000);
         }
-        js1000.push((performance.now() - startTime).toFixed(0));
+        js10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
-        for (let j = 0; j < totalData / 1000; j++) {
-            tripleUntypedJs(1000);
+        for (let j = 0; j < totalData / 10000; j++) {
+            tripleUntypedJs(10000);
         }
-        jsUntyped1000.push((performance.now() - startTime).toFixed(0));
+        jsUntyped10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
-        for (let j = 0; j < totalData / 1000; j++) {
-            tripleRawPtrDirect(module, 1000);
+        for (let j = 0; j < totalData / 10000; j++) {
+            tripleRawPtrDirect(module, 10000);
         }
-        rawPtrDirect1000.push((performance.now() - startTime).toFixed(0));
+        rawPtrDirect10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
-        for (let j = 0; j < totalData / 1000; j++) {
-            tripleRawPtrCopy(module, 1000);
+        for (let j = 0; j < totalData / 10000; j++) {
+            tripleRawPtrCopy(module, 10000);
         }
-        rawPtrCopy1000.push((performance.now() - startTime).toFixed(0));
+        rawPtrCopy10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
-        for (let j = 0; j < totalData / 1000; j++) {
-            tripleEmbindRawPtrCopy(module, 1000);
+        for (let j = 0; j < totalData / 10000; j++) {
+            tripleEmbindRawPtrCopy(module, 10000);
         }
-        embindRawPtrCopy1000.push((performance.now() - startTime).toFixed(0));
+        embindRawPtrCopy10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
-        for (let j = 0; j < totalData / 1000; j++) {
-            tripleEmbindCopy(module, 1000);
+        for (let j = 0; j < totalData / 10000; j++) {
+            tripleEmbindCopy(module, 10000);
         }
-        embindCopy1000.push((performance.now() - startTime).toFixed(0));
+        embindCopy10000.push((performance.now() - startTime).toFixed(0));
     }
     result += `JS(100): ${js100}ms (per ${totalData / 100} calls)\n`;
     result += `JS untyped(100): ${jsUntyped100}ms (per ${totalData / 100} calls)\n`;
@@ -339,12 +339,12 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
     result += `tripleRawPtrCopy(100): ${rawPtrCopy100}ms (per ${totalData / 100} calls)\n`;
     result += `tripleEmbindRawPtrCopy(100): ${embindRawPtrCopy100}ms (per ${totalData / 100} calls)\n`;
     result += `tripleEmbindCopy(100): ${embindCopy100}ms (per ${totalData / 100} calls)\n`;
-    result += `JS(1000): ${js1000}ms (per ${totalData / 1000} calls)\n`;
-    result += `JS untyped(1000): ${jsUntyped1000}ms (per ${totalData / 1000} calls)\n`;
-    result += `tripleRawPtrDirect(1000): ${rawPtrDirect1000}ms (per ${totalData / 1000} calls)\n`;
-    result += `tripleRawPtrCopy(1000): ${rawPtrCopy1000}ms (per ${totalData / 1000} calls)\n`;
-    result += `tripleEmbindRawPtrCopy(1000): ${embindRawPtrCopy1000}ms (per ${totalData / 1000} calls)\n`;
-    result += `tripleEmbindCopy(1000): ${embindCopy1000}ms (per ${totalData / 1000} calls)\n`;
+    result += `JS(10000): ${js10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `JS untyped(10000): ${jsUntyped10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleRawPtrDirect(10000): ${rawPtrDirect10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleRawPtrCopy(10000): ${rawPtrCopy10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleEmbindRawPtrCopy(10000): ${embindRawPtrCopy10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleEmbindCopy(10000): ${embindCopy10000}ms (per ${totalData / 10000} calls)\n`;
 
     console.log(`Finished stupidMicroBenchmarkArrays in ${performance.now() - totalStartTime}ms`)
     return result;
