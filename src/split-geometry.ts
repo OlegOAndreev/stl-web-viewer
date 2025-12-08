@@ -1,6 +1,7 @@
 import { BufferAttribute, BufferGeometry, Vector3, type TypedArray } from 'three';
 
 import { notAtan2 } from './not-atan';
+// import type { MainModule } from '../wasm/build/main-wasm-module';
 
 // Splits a non-indexed BufferGeometry into multiple geometries, where each geometry represents a separate body. Assumes
 // T-junctions are accidental and the normals of each body are outward-facing.
@@ -74,7 +75,6 @@ export function splitDisjointGeometry(geo: BufferGeometry): BufferGeometry[] {
     const visited: boolean[] = new Array(triCount).fill(false);
     // A part is a list of triangle indices.
     const parts: number[][] = [];
-    // Use BFS instead of DFS, otherwise we get stack overflow on complex models.
     const queue: number[] = [];
 
     // Find the next triangle to visit after triangle v1-v2-v3. All triangles in tris share the edge v2-v1. The
@@ -186,3 +186,51 @@ export function splitDisjointGeometry(geo: BufferGeometry): BufferGeometry[] {
 
     return result;
 }
+
+// export function splitDisjointGeometryWasm(module: MainModule, geo: BufferGeometry) {
+//     if (geo.index !== null) {
+//         geo = geo.toNonIndexed();
+//     }
+
+//     const positionAttr = geo.getAttribute('position');
+//     if (!positionAttr) {
+//         throw new Error('Geometry does not have position attribute');
+//     }
+//     if (!(positionAttr instanceof BufferAttribute)) {
+//         throw new Error('Interleaved buffer position attribute not supported');
+//     }
+//     const posLength = positionAttr.array.length;
+//     const posPtr = module._malloc(posLength * 4);
+//     module.HEAPF32.set(positionAttr.array, posLength / 4);
+
+//     const indices = module._splitDisjointGeometry(posPtr, posLength);
+
+//     const result: BufferGeometry[] = [];
+//     for (const part of parts) {
+//         const newGeo = new BufferGeometry();
+//         for (const name in geo.attributes) {
+//             const attr = geo.attributes[name];
+//             if (!(attr instanceof BufferAttribute)) {
+//                 throw new Error(`Interleaved buffer attribute "${name}" not supported`);
+//             }
+
+//             const itemSize = attr.itemSize;
+//             const newArray = new (attr.array.constructor as new (n: number) => TypedArray)(
+//                 part.length * 3 * itemSize
+//             );
+//             for (let i = 0; i < part.length; i++) {
+//                 const triIdx = part[i];
+//                 const srcOffset = triIdx * 3 * itemSize;
+//                 const dstOffset = i * 3 * itemSize;
+//                 for (let j = 0; j < 3 * itemSize; j++) {
+//                     newArray[dstOffset + j] = attr.array[srcOffset + j];
+//                 }
+//             }
+
+//             const newAttr = new BufferAttribute(newArray, itemSize, attr.normalized);
+//             newGeo.setAttribute(name, newAttr);
+//         }
+//         result.push(newGeo);
+//     }
+//     return result;
+// }

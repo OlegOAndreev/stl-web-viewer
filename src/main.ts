@@ -25,7 +25,7 @@ import { BufferGeometryUtils, TrackballControls } from 'three/examples/jsm/Addon
 
 import MainModuleFactory from '../wasm/build/main-wasm-module.js';
 import { splitDisjointGeometry } from './split-geometry';
-import { stupidMicroBenchmark } from './stupid-microbenchmark';
+import { stupidMicroBenchmarkArrays, stupidMicroBenchmarkSimple } from './stupid-microbenchmark';
 import { computeTriangleNormals } from './triangle-normals';
 
 const mainModule = await MainModuleFactory();
@@ -199,6 +199,7 @@ function createGui(): GUI {
             statsPanel.dom.style.display = v ? 'block' : 'none';
         });
 
+    const benchmarkFolder = miscFolder.addFolder('Stupid benchmarks');
     const stupidMicroBenchmarkResults = document.getElementById('stupid-micro-benchmark-results');
     if (!stupidMicroBenchmarkResults) {
         throw new Error('Element with id "stupid-micro-benchmark-results" not found');
@@ -208,12 +209,16 @@ function createGui(): GUI {
         navigator.clipboard.writeText(stupidMicroBenchmarkResultsToCopy);
         stupidMicroBenchmarkResults.style.display = 'none';
     };
-    miscFolder.add((() => {
-        const results = stupidMicroBenchmark(mainModule);
+    function setBenchResults(results: string) {
         stupidMicroBenchmarkResultsToCopy = results;
-        stupidMicroBenchmarkResults.style.display = 'block';
-        stupidMicroBenchmarkResults.textContent = results + '\n[Click to copy]';
-    }) as CallableFunction, 'call').name('Run stupid microbenchmark');
+        stupidMicroBenchmarkResults!.style.display = 'block';
+        stupidMicroBenchmarkResults!.textContent = results + '\n[Click to copy]';
+    };
+    benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkSimple(mainModule))) as CallableFunction, 'call')
+        .name('Run simple call');
+    benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkArrays(mainModule))) as CallableFunction, 'call')
+        .name('Run arrays');
+    benchmarkFolder.close();
     miscFolder.close();
 
     return gui;

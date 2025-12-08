@@ -15,7 +15,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE float notAtan2(float y, float x) {
     //   x < 0 && y > 0: (PI/2, PI)
     //   x < 0 && y < 0: (-PI, -PI/2)
     float alpha = y / x;
-    if (std::isnan(alpha)) {
+    if (isnan(alpha)) {
         // Apparently real atan2 implementations contain a hardcoded list of cases here, for example see
         // https://git.musl-libc.org/cgit/musl/tree/src/math/atan2.c
         return 0.0;
@@ -23,15 +23,11 @@ extern "C" EMSCRIPTEN_KEEPALIVE float notAtan2(float y, float x) {
 
     // normalized = PI/2 * alpha / (abs(alpha) + 1), but we want to leave alpha only in the divisor so that we do not
     // get NaN when alpha = Infinity.
-    float normalized = M_PI * 0.5f * std::copysign(1.0f, alpha) * (1.0f - 1.0f / (1.0f + std::abs(alpha)));
-    if (x >= 0.0f && !std::signbit(x)) {
+    float normalized = M_PI * 0.5f * copysign(1.0f, alpha) * (1.0f - 1.0f / (1.0f + abs(alpha)));
+    if (x >= 0.0f && !signbit(x)) {
         return normalized;
     } else {
         // y = -0.0f should return normalized - M_PI
-        return normalized + std::copysign(M_PI, y);
+        return normalized + copysign(M_PI, y);
     }
-}
-
-extern "C" EMSCRIPTEN_KEEPALIVE float stdAtan2(float y, float x) {
-    return std::atan2(y, x);
 }
