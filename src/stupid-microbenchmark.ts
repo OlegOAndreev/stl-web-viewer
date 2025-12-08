@@ -146,7 +146,7 @@ function tripleRawPtrDirect(module: MainModule, n: number) {
     //     module.HEAPF32[inputPtr / 4 + i] = base + i;
     // }
     // Accessing HEAPF32 directly is both cumbersome and a pessimization at least when using mimalloc on Chrome.
-    const inputArray = new Float32Array(module.HEAPF32.buffer, inputPtr, n);
+    const inputArray = module.HEAPF32.subarray(inputPtr / 4, inputPtr / 4 + n);
     for (let i = 0; i < n; i++) {
         inputArray[i] = base + i;
     }
@@ -220,11 +220,13 @@ function tripleRawPtrCopy(module: MainModule, n: number) {
 // Create a Float32Array, call an embind function, then read the results from the wasm memory.
 function tripleEmbindCopy(module: MainModule, n: number) {
     const base = 345.6;
-    const inputArray = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-        inputArray[i] = base + i;
+    if (cachedInput === undefined || cachedInput.length !== n) {
+        cachedInput = new Float32Array(n);
     }
-    const result = module.embindTriple(inputArray);
+    for (let i = 0; i < n; i++) {
+        cachedInput[i] = base + i;
+    }
+    const result = module.embindTriple(cachedInput);
     const lastResult = result[result.length - 1];
     const resultDiff = lastResult - 3 * (base + n - 1);
     // Account for difference between float and double.
