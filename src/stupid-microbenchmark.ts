@@ -142,7 +142,10 @@ function tripleRawPtrDirect(module: MainModule, n: number) {
     }
     const base = 123.4;
     const inputPtr = module._malloc(n * 4);
-    // This is an optimization for at least some cases in Chrome and also easier to work with.
+    // for (let i = 0; i < n; i++) {
+    //     module.HEAPF32[inputPtr / 4 + i] = base + i;
+    // }
+    // Accessing HEAPF32 directly is both cumbersome and a pessimization at least when using mimalloc on Chrome.
     const inputArray = new Float32Array(module.HEAPF32.buffer, inputPtr, n);
     for (let i = 0; i < n; i++) {
         inputArray[i] = base + i;
@@ -162,17 +165,21 @@ function tripleRawPtrDirect(module: MainModule, n: number) {
 
 // Create a Float32Array, allocate memory with malloc, copy array into memory, call a function, then read the results
 // from the wasm memory.
+let cachedInput: Float32Array;
 function tripleRawPtrCopy(module: MainModule, n: number) {
     if (resultPodArrayPtr === undefined) {
         resultPodArrayPtr = module._malloc(8);
     }
     const base = 567.8;
-    const inputArray = new Float32Array(n);
+    // We do not want to benchmark JS GC, save the last array.
+    if (cachedInput === undefined || cachedInput.length !== n) {
+        cachedInput = new Float32Array(n);
+    }
     for (let i = 0; i < n; i++) {
-        inputArray[i] = base + i;
+        cachedInput[i] = base + i;
     }
     const inputPtr = module._malloc(n * 4);
-    module.HEAPF32.set(inputArray, inputPtr / 4);
+    module.HEAPF32.set(cachedInput, inputPtr / 4);
     module._tripleRawPtr(resultPodArrayPtr, inputPtr, n);
     const resultDataPtr = module.HEAPU32[resultPodArrayPtr / 4];
     const resultSize = module.HEAPU32[resultPodArrayPtr / 4 + 1];
