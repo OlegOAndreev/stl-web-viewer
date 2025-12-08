@@ -193,29 +193,31 @@ function tripleRawPtrCopy(module: MainModule, n: number) {
     module._free(inputPtr);
 }
 
-// // Create a Float32Array, allocate memory with malloc, copy array into memory, call a function, then read the results
-// // from the wasm memory.
-// function tripleEmbindRawPtrCopy(module: MainModule, n: number) {
-//     if (resultPodArrayPtr === undefined) {
-//         resultPodArrayPtr = module._malloc(8);
-//     }
-//     const base = 5678.9;
-//     const inputArray = new Float32Array(n);
-//     for (let i = 0; i < n; i++) {
-//         inputArray[i] = base + i;
-//     }
-//     const input = new module.Float32PodArray(n);
-//     module.HEAPF32.set(inputArray, input.dataPtr / 4);
-//     const result = module.embindTripleRawPtr(input.dataPtr, input.size);
-//     const lastResult = module.HEAPF32[result.dataPtr / 4 + result.size - 1];
-//     const resultDiff = lastResult - 3 * (base + n - 1);
-//     // Account for difference between float and double.
-//     if (Math.abs(resultDiff) > 1e-5 * n) {
-//         throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
-//     }
-//     result.freeData();
-//     input.freeData();
-// }
+// Create a Float32Array, allocate memory with malloc, copy array into memory, call a function, then read the results
+// from the wasm memory.
+function tripleEmbindRawPtrCopy(module: MainModule, n: number) {
+    if (resultPodArrayPtr === undefined) {
+        resultPodArrayPtr = module._malloc(8);
+    }
+    const base = 5678.9;
+    if (cachedInput === undefined || cachedInput.length !== n) {
+        cachedInput = new Float32Array(n);
+    }
+    for (let i = 0; i < n; i++) {
+        cachedInput[i] = base + i;
+    }
+    const input = new module.Float32PodArray(n);
+    module.HEAPF32.set(cachedInput, input.dataPtr / 4);
+    const result = module.embindTripleRawPtr(input.dataPtr, input.size);
+    const lastResult = module.HEAPF32[result.dataPtr / 4 + result.size - 1];
+    const resultDiff = lastResult - 3 * (base + n - 1);
+    // Account for difference between float and double.
+    if (Math.abs(resultDiff) > 1e-5 * n) {
+        throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
+    }
+    result.freeData();
+    input.freeData();
+}
 
 // Create a Float32Array, call an embind function, then read the results from the wasm memory.
 function tripleEmbindCopy(module: MainModule, n: number) {
@@ -249,13 +251,13 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
     const jsUntyped100: string[] = [];
     const rawPtrDirect100: string[] = [];
     const rawPtrCopy100: string[] = [];
-    // const embindRawPtrCopy100: string[] = [];
+    const embindRawPtrCopy100: string[] = [];
     const embindCopy100: string[] = [];
     const js1000: string[] = [];
     const jsUntyped1000: string[] = [];
     const rawPtrDirect1000: string[] = [];
     const rawPtrCopy1000: string[] = [];
-    // const embindRawPtrCopy1000: string[] = [];
+    const embindRawPtrCopy1000: string[] = [];
     const embindCopy1000: string[] = [];
     for (let i = 0; i < numTries; i++) {
         console.log(`Heap size ${module._getHeapSize()}, heap max: ${module._getMaxHeapSize()}, buffer: `, module.HEAPF32.buffer);
@@ -283,11 +285,11 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
         }
         rawPtrCopy100.push((performance.now() - startTime).toFixed(0));
 
-        // // startTime = performance.now();
-        // // for (let j = 0; j < totalData / 100; j++) {
-        // //     tripleEmbindRawPtrCopy(module, 100);
-        // // }
-        // // embindRawPtrCopy100.push((performance.now() - startTime).toFixed(0));
+        startTime = performance.now();
+        for (let j = 0; j < totalData / 100; j++) {
+            tripleEmbindRawPtrCopy(module, 100);
+        }
+        embindRawPtrCopy100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
@@ -319,11 +321,11 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
         }
         rawPtrCopy1000.push((performance.now() - startTime).toFixed(0));
 
-        // startTime = performance.now();
-        // for (let j = 0; j < totalData / 1000; j++) {
-        //     tripleEmbindRawPtrCopy(module, 1000);
-        // }
-        // embindRawPtrCopy1000.push((performance.now() - startTime).toFixed(0));
+        startTime = performance.now();
+        for (let j = 0; j < totalData / 1000; j++) {
+            tripleEmbindRawPtrCopy(module, 1000);
+        }
+        embindRawPtrCopy1000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 1000; j++) {
@@ -335,13 +337,13 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
     result += `JS untyped(100): ${jsUntyped100}ms (per ${totalData / 100} calls)\n`;
     result += `tripleRawPtrDirect(100): ${rawPtrDirect100}ms (per ${totalData / 100} calls)\n`;
     result += `tripleRawPtrCopy(100): ${rawPtrCopy100}ms (per ${totalData / 100} calls)\n`;
-    // result += `tripleEmbindRawPtrCopy(100): ${embindRawPtrCopy100}ms (per ${totalData / 100} calls)\n`;
+    result += `tripleEmbindRawPtrCopy(100): ${embindRawPtrCopy100}ms (per ${totalData / 100} calls)\n`;
     result += `tripleEmbindCopy(100): ${embindCopy100}ms (per ${totalData / 100} calls)\n`;
     result += `JS(1000): ${js1000}ms (per ${totalData / 1000} calls)\n`;
     result += `JS untyped(1000): ${jsUntyped1000}ms (per ${totalData / 1000} calls)\n`;
     result += `tripleRawPtrDirect(1000): ${rawPtrDirect1000}ms (per ${totalData / 1000} calls)\n`;
     result += `tripleRawPtrCopy(1000): ${rawPtrCopy1000}ms (per ${totalData / 1000} calls)\n`;
-    // result += `tripleEmbindRawPtrCopy(1000): ${embindRawPtrCopy1000}ms (per ${totalData / 1000} calls)\n`;
+    result += `tripleEmbindRawPtrCopy(1000): ${embindRawPtrCopy1000}ms (per ${totalData / 1000} calls)\n`;
     result += `tripleEmbindCopy(1000): ${embindCopy1000}ms (per ${totalData / 1000} calls)\n`;
 
     console.log(`Finished stupidMicroBenchmarkArrays in ${performance.now() - totalStartTime}ms`)
