@@ -44,6 +44,7 @@ if(EMSCRIPTEN)
         -sEXPORTED_FUNCTIONS=[_malloc,_free]
         -sEXPORTED_RUNTIME_METHODS=[HEAPU32,HEAPF32]
         --emit-tsd main-wasm-module.d.ts
+        --emit-symbol-map
     )
 else()
     message(FATAL_ERROR "This project must be built with Emscripten. Please use 'emcmake cmake' instead of 'cmake'.")
