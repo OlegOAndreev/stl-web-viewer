@@ -9,11 +9,10 @@
     <link rel="icon" href="data:;base64,=" />
     <!-- This file should not be bundled -->
     <script src="coi-serviceworker.min.js"></script>
+    <script type="module" src="/src/main.ts"></script>
 </head>
 
 <body>
-    <script type="module" src="/src/main.ts"></script>
-
     <canvas id="threejs" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     <input type="file" id="file-input" accept=".stl" style="display: none"></input>
     <div id="stupid-micro-benchmark-results"></div>
