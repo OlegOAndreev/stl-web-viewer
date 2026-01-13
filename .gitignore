@@ -8,5 +8,4 @@ dist
 data
 
 .cache
-compile_flags.txt
 wasm/build
