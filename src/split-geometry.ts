@@ -33,8 +33,8 @@ export function splitDisjointGeometry(geo: BufferGeometry): BufferGeometry[] {
 
     // Maps edge key -> list of triangles with that edge.
     interface Triangle {
-        triIdx: number,
-        normal: Vector3,
+        triIdx: number;
+        normal: Vector3;
     }
     const edgeMap = new Map<string, Triangle[]>();
     function getEdgeKey(v1: Vector3, v2: Vector3): string {

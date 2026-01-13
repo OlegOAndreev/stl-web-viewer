@@ -30,19 +30,19 @@ import { computeTriangleNormals } from './triangle-normals';
 
 const mainModule = await MainModuleFactory();
 
-const fov = 80;
-const nearZ = 0.1;
-const farZ = 10000.0;
-const modelMinSize = 10.0;
-const modelMaxSize = 1000.0;
-const lineColor = 0x000000;
-const positiveNormalColor = 0x00C000;
-const negativeNormalColor = 0xD00000;
-const bgColor = 0xFFFFFF;
-const lightColor = 0xFFFFFF;
-const modelColor = 0x808080;
+const FOV = 80;
+const NEAR_Z = 0.1;
+const FAR_Z = 10000.0;
+const MODEL_MIN_SIZE = 10.0;
+const MODEL_MAX_SIZE = 1000.0;
+const LINE_COLOR = 0x000000;
+const POSITIVE_NORMAL_COLOR = 0x00C000;
+const NEGATIVE_NORMAL_COLOR = 0xD00000;
+const BG_COLOR = 0xFFFFFF;
+const LIGHT_COLOR = 0xFFFFFF;
+const MODEL_COLOR = 0x808080;
 // Generated with https://paletton.com
-const fancyColors = [
+const FANCY_COLORS = [
     0x804343, 0x805F43, 0x284D4D, 0x356735,
     0x5E2F2F, 0x5E442F, 0x1C3838, 0x254B25,
     0x3D1D1D, 0x3D2B1D, 0x112525, 0x173117,
@@ -51,8 +51,8 @@ const fancyColors = [
 ];
 
 // We store settings into LocalStorage and last model into OPFS
-const settingsKey = 'stl-web-viewer-settings';
-const savedModelName = 'latest-model';
+const SETTINGS_KEY = 'stl-web-viewer-settings';
+const SAVED_MODEL_NAME = 'latest-model';
 
 let stupidMicroBenchmarkResultsToCopy = '';
 
@@ -62,16 +62,16 @@ if (!canvas) {
 }
 
 const opfsRoot = await navigator.storage.getDirectory();
-const savedModelHandle = await opfsRoot.getFileHandle(savedModelName, { create: true });
+const savedModelHandle = await opfsRoot.getFileHandle(SAVED_MODEL_NAME, { create: true });
 
 interface Settings {
-    cameraIsPerspective: boolean,
-    withLight: boolean,
-    showWireframe: boolean,
-    withColors: boolean,
-    showNormals: boolean,
-    showStats: boolean,
-    latestModelName: string,
+    cameraIsPerspective: boolean;
+    withLight: boolean;
+    showWireframe: boolean;
+    withColors: boolean;
+    showNormals: boolean;
+    showStats: boolean;
+    latestModelName: string;
 }
 const settings = loadSettings();
 const statsPanel = createStatsPanel();
@@ -90,34 +90,34 @@ const viewSize = {
     orthoCameraSize: 0.0,
 };
 
-const perspCamera = new PerspectiveCamera(fov, 1.0, nearZ, farZ);
-const orthoCamera = new OrthographicCamera(-1.0, 1.0, 1.0, -1.0, nearZ, farZ);
+const perspCamera = new PerspectiveCamera(FOV, 1.0, NEAR_Z, FAR_Z);
+const orthoCamera = new OrthographicCamera(-1.0, 1.0, 1.0, -1.0, NEAR_Z, FAR_Z);
 let curControls = createControls(settings.cameraIsPerspective);
 updateCanvasSize();
 
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setClearColor(new Color(bgColor), 1.0);
+renderer.setClearColor(new Color(BG_COLOR), 1.0);
 
 const directionalLight = createLight();
 
 const materials = {
-    basic: createBasicMaterial(modelColor),
-    colored: createColoredMaterials(fancyColors),
+    basic: createBasicMaterial(MODEL_COLOR),
+    colored: createColoredMaterials(FANCY_COLORS),
     wireframe: new LineBasicMaterial({
-        color: lineColor,
+        color: LINE_COLOR,
     }),
     outwardNormal: new LineBasicMaterial({
-        color: positiveNormalColor,
+        color: POSITIVE_NORMAL_COLOR,
     }),
     inwardNormal: new LineBasicMaterial({
-        color: negativeNormalColor,
+        color: NEGATIVE_NORMAL_COLOR,
     }),
 };
 
 interface PreparedModel {
-    meshes: Mesh[],
-    wireframes: LineSegments[],
-    normals: LineSegments[],
+    meshes: Mesh[];
+    wireframes: LineSegments[];
+    normals: LineSegments[];
 }
 let curModel = createDefaultModel();
 
@@ -135,12 +135,12 @@ function loadSettings(): Settings {
         showStats: false,
         latestModelName: '',
     };
-    Object.assign(settings, JSON.parse(localStorage.getItem(settingsKey) ?? '{}'));
+    Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}'));
     return settings;
 }
 
 function saveSettings() {
-    localStorage.setItem(settingsKey, JSON.stringify(settings));
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
 function createGui(): GUI {
@@ -148,22 +148,17 @@ function createGui(): GUI {
 
     gui.onChange((_) => saveSettings());
 
-    const fileInput = document.getElementById('file-input');
+    const fileInput = document.getElementById('file-input') as HTMLInputElement;
     if (!fileInput) {
         throw new Error('Element with id "file-input" not found');
     }
-    fileInput.addEventListener('change', (event: Event) => {
-        const target = event.target as HTMLInputElement;
-        if (target.files!.length > 0) {
-            const file = target.files![0];
+    fileInput.addEventListener('change', async () => {
+        if (fileInput.files!.length > 0) {
+            const file = fileInput.files![0];
 
-            const reader = new FileReader();
-            reader.onload = async () => {
-                await onLoadFile(file.name, reader.result as ArrayBuffer);
-                await saveFile(file.name, reader.result as ArrayBuffer);
-            };
-            reader.onerror = () => console.log('File loading failed');
-            reader.readAsArrayBuffer(file);
+            const buffer = await file.arrayBuffer();
+            await onLoadFile(file.name, buffer);
+            await saveFile(file.name, buffer);
         }
     });
 
@@ -253,9 +248,9 @@ function createControls(perspective: boolean): TrackballControls {
 }
 
 function createLight(): DirectionalLight {
-    scene.add(new AmbientLight(lightColor, 1.5));
+    scene.add(new AmbientLight(LIGHT_COLOR, 1.5));
 
-    const directionalLight = new DirectionalLight(lightColor, 2.0);
+    const directionalLight = new DirectionalLight(LIGHT_COLOR, 2.0);
     directionalLight.position.set(100.0, 100.0, 100.0);
     scene.add(directionalLight);
     if (!settings.withLight) {
@@ -356,14 +351,14 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
     geo.computeBoundingSphere();
     const modelCenter = geo.boundingSphere!.center;
     let modelRadius = geo.boundingSphere!.radius;
-    if (modelRadius > modelMaxSize) {
-        const scale = modelMaxSize / modelRadius;
+    if (modelRadius > MODEL_MAX_SIZE) {
+        const scale = MODEL_MAX_SIZE / modelRadius;
         geo.scale(scale, scale, scale);
-        modelRadius = modelMaxSize;
-    } else if (modelRadius < modelMinSize) {
-        const scale = modelMinSize / modelRadius;
+        modelRadius = MODEL_MAX_SIZE;
+    } else if (modelRadius < MODEL_MIN_SIZE) {
+        const scale = MODEL_MIN_SIZE / modelRadius;
         geo.scale(scale, scale, scale);
-        modelRadius = modelMinSize;
+        modelRadius = MODEL_MIN_SIZE;
     }
 
     const parts = splitDisjointGeometry(geo);
