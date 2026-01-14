@@ -1,11 +1,12 @@
-import type { MainModule } from "../wasm/build/main-wasm-module";
+import type { MainModule } from "../wasm-cpp/build/main-wasm-module";
+import type { InitOutput as RustWasmModule } from "../wasm-rs/build/wasm_main_module";
 import { notAtan2 } from "./not-atan";
 
 // This is the stupidest micro-benchmark, but still useful for getting an idea on how much the function call costs.
-export function stupidMicroBenchmarkSimple(module: MainModule): string {
+export function stupidMicroBenchmarkSimple(cppModule: MainModule, rustModule: RustWasmModule): string {
     console.log('Starting stupidMicroBenchmarkSimple');
     const totalStartTime = performance.now();
-    let result = getResultPrologue(module);
+    let result = getResultPrologue(cppModule);
 
     const numValues = 25000000;
     const numTries = 3;
@@ -29,11 +30,13 @@ export function stupidMicroBenchmarkSimple(module: MainModule): string {
     const typedArrayWasmStdAtan2 = [];
     const typedArrayWasmNotAtan2 = [];
     const typedArrayWasmEmbindNotAtan2 = [];
+    const typedArrayRustNotAtan2 = [];
     const arrayMathAtan2 = [];
     const arrayNotAtan2 = [];
     const arrayWasmStdAtan2 = [];
     const arrayWasmNotAtan2 = [];
     const arrayWasmEmbindNotAtan2 = [];
+    const arrayRustNotAtan2 = [];
     for (let i = 0; i < numTries; i++) {
         let startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
@@ -49,21 +52,27 @@ export function stupidMicroBenchmarkSimple(module: MainModule): string {
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
-            _unused += module._stdAtan2(typedY[j], typedX[j]);
+            _unused += cppModule._stdAtan2(typedY[j], typedX[j]);
         }
         typedArrayWasmStdAtan2.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
-            _unused += module._notAtan2(typedY[j], typedX[j]);
+            _unused += cppModule._notAtan2(typedY[j], typedX[j]);
         }
         typedArrayWasmNotAtan2.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
-            _unused += module.embindNotAtan2(typedY[j], typedX[j]);
+            _unused += cppModule.embindNotAtan2(typedY[j], typedX[j]);
         }
         typedArrayWasmEmbindNotAtan2.push((performance.now() - startTime).toFixed(0));
+
+        startTime = performance.now();
+        for (let j = 0; j < numValues; j++) {
+            _unused += rustModule.not_atan2(typedY[j], typedX[j]);
+        }
+        typedArrayRustNotAtan2.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
@@ -79,32 +88,40 @@ export function stupidMicroBenchmarkSimple(module: MainModule): string {
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
-            _unused += module._stdAtan2(untypedY[j], untypedX[j]);
+            _unused += cppModule._stdAtan2(untypedY[j], untypedX[j]);
         }
         arrayWasmStdAtan2.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
-            _unused += module._notAtan2(untypedY[j], untypedX[j]);
+            _unused += cppModule._notAtan2(untypedY[j], untypedX[j]);
         }
         arrayWasmNotAtan2.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
-            _unused += module.embindNotAtan2(untypedY[j], untypedX[j]);
+            _unused += cppModule.embindNotAtan2(untypedY[j], untypedX[j]);
         }
         arrayWasmEmbindNotAtan2.push((performance.now() - startTime).toFixed(0));
+
+        startTime = performance.now();
+        for (let j = 0; j < numValues; j++) {
+            _unused += rustModule.not_atan2(untypedY[j], untypedX[j]);
+        }
+        arrayRustNotAtan2.push((performance.now() - startTime).toFixed(0));
     }
     result += `TypedArray Math.atan2: ${typedArrayMathAtan2}ms\n`;
     result += `TypedArray notAtan2: ${typedArrayNotAtan2}ms\n`;
     result += `TypedArray WASM std::atan2: ${typedArrayWasmStdAtan2}ms\n`;
     result += `TypedArray WASM notAtan2: ${typedArrayWasmNotAtan2}ms\n`;
     result += `TypedArray WASM embind notAtan2: ${typedArrayWasmEmbindNotAtan2}ms\n`;
+    result += `TypedArray Rust not_atan2: ${typedArrayRustNotAtan2}ms\n`;
     result += `Array Math.atan2: ${arrayMathAtan2}ms\n`;
     result += `Array notAtan2: ${arrayNotAtan2}ms\n`;
     result += `Array WASM std::atan2: ${arrayWasmStdAtan2}ms\n`;
     result += `Array WASM notAtan2: ${arrayWasmNotAtan2}ms\n`;
     result += `Array WASM embind notAtan2: ${arrayWasmEmbindNotAtan2}ms\n`;
+    result += `Array Rust not_atan2: ${arrayRustNotAtan2}ms\n`;
 
     console.log(`Finished stupidMicroBenchmarkSimple in ${performance.now() - totalStartTime}ms`)
     return result;
@@ -239,10 +256,10 @@ function tripleEmbindCopy(module: MainModule, n: number) {
 }
 
 // This is the micro-benchmark measures the costs of passing Float32Array.
-export function stupidMicroBenchmarkArrays(module: MainModule): string {
+export function stupidMicroBenchmarkArrays(cppModule: MainModule, _rustModule: RustWasmModule): string {
     console.log('Starting stupidMicroBenchmarkArrays');
     const totalStartTime = performance.now();
-    let result = getResultPrologue(module);
+    let result = getResultPrologue(cppModule);
 
     const totalData = 100000000;
     const numTries = 3;
@@ -260,7 +277,7 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
     const embindRawPtrCopy10000: string[] = [];
     const embindCopy10000: string[] = [];
     for (let i = 0; i < numTries; i++) {
-        console.log(`Heap size ${module._getHeapSize()}, heap max: ${module._getMaxHeapSize()}, buffer: `, module.HEAPF32.buffer);
+        console.log(`Heap size ${cppModule._getHeapSize()}, heap max: ${cppModule._getMaxHeapSize()}, buffer: `, cppModule.HEAPF32.buffer);
         let startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
             tripleJs(100);
@@ -275,25 +292,25 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleRawPtrDirect(module, 100);
+            tripleRawPtrDirect(cppModule, 100);
         }
         rawPtrDirect100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleRawPtrCopy(module, 100);
+            tripleRawPtrCopy(cppModule, 100);
         }
         rawPtrCopy100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleEmbindRawPtrCopy(module, 100);
+            tripleEmbindRawPtrCopy(cppModule, 100);
         }
         embindRawPtrCopy100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleEmbindCopy(module, 100);
+            tripleEmbindCopy(cppModule, 100);
         }
         embindCopy100.push((performance.now() - startTime).toFixed(0));
 
@@ -311,25 +328,25 @@ export function stupidMicroBenchmarkArrays(module: MainModule): string {
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleRawPtrDirect(module, 10000);
+            tripleRawPtrDirect(cppModule, 10000);
         }
         rawPtrDirect10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleRawPtrCopy(module, 10000);
+            tripleRawPtrCopy(cppModule, 10000);
         }
         rawPtrCopy10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleEmbindRawPtrCopy(module, 10000);
+            tripleEmbindRawPtrCopy(cppModule, 10000);
         }
         embindRawPtrCopy10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleEmbindCopy(module, 10000);
+            tripleEmbindCopy(cppModule, 10000);
         }
         embindCopy10000.push((performance.now() - startTime).toFixed(0));
     }

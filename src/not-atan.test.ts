@@ -17,7 +17,7 @@ test('notAtan2 boundaries', () => {
 });
 
 test('notAtan2 consistent order', () => {
-    function areZeroOrInf(x: number, y: number): boolean {
+    function areBothZeroOrInf(x: number, y: number): boolean {
         if (Math.abs(x) === Infinity && Math.abs(y) === Infinity) {
             return true;
         }
@@ -33,14 +33,14 @@ test('notAtan2 consistent order', () => {
         const y1 = values[i];
         for (let j = 0; j < values.length; j++) {
             const x1 = values[j];
-            if (areZeroOrInf(x1, y1)) {
+            if (areBothZeroOrInf(x1, y1)) {
                 continue;
             }
             for (let k = 0; k < values.length; k++) {
                 const y2 = values[k];
                 for (let m = 0; m < values.length; m++) {
                     const x2 = values[m];
-                    if (areZeroOrInf(x2, y2)) {
+                    if (areBothZeroOrInf(x2, y2)) {
                         continue;
                     }
                     const origValue1 = Math.atan2(y1, x1);

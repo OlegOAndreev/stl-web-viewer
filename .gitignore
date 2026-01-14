@@ -8,4 +8,5 @@ dist
 data
 
 .cache
-wasm/build
+wasm-*/build
+wasm-rs/target
