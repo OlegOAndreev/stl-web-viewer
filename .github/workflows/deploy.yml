@@ -40,6 +40,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Install build dependencies
         run: ./wasm/install-build-deps.sh
+      - name: Test
+        run: npm run test
       - name: Build
         run: npm run build
       - name: Setup Pages
