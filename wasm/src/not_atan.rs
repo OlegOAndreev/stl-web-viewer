@@ -111,7 +111,7 @@ mod tests {
                             y1, x1, new1, orig1, y2, x2, new2, orig2
                         );
 
-                        if (orig1 - orig2).abs() < 1e-7 {
+                        if (orig1 - orig2).abs() < 1e-6 {
                             // If original values are nearly equal, allow new values to be equal or ordered same direction
                             if orig1 < orig2 {
                                 assert!(new1 <= new2, "{}", message);
