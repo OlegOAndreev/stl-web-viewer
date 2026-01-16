@@ -1,7 +1,7 @@
 # Copy-pasted from https://vite.dev/guide/static-deploy#github-pages
 
 # Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Run tests
 
 on:
   # Runs on pushes targeting the default branch
