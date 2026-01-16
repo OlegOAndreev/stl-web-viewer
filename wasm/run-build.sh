@@ -45,7 +45,8 @@ time "$BUILD_DIR/bin/wasm-bindgen" --target web --out-dir "$BUILD_DIR" "$WASM_IN
 #
 # It would've been nice if this could be configured via cli flags...
 echo "Patching wasm_main_module.js to disable FinalizationRegistry..."
-sed -i '' "s/(typeof FinalizationRegistry === 'undefined')/(true)/g" "$BUILD_DIR/wasm_main_module.js"
+# Use sed compatible with both macOS and Linux
+sed -i.bak "s/(typeof FinalizationRegistry === 'undefined')/(true)/g" "$BUILD_DIR/wasm_main_module.js" && rm -f "$BUILD_DIR/wasm_main_module.js.bak"
 
 echo "Running wasm-opt for optimization..."
 WASM_OUTPUT="$BUILD_DIR/wasm_main_module_bg.wasm"
