@@ -136,6 +136,7 @@ export function splitDisjointGeometry(geo: BufferGeometry): BufferGeometry[] {
         if (visited[triIdx]) {
             continue;
         }
+        visited[triIdx] = true;
 
         const nextPart: number[] = [];
         queue.push(triIdx);
