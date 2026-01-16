@@ -1,12 +1,12 @@
-import type { MainModule } from "../wasm-cpp/build/main-wasm-module";
-import type { InitOutput as RustWasmModule } from "../wasm-rs/build/wasm_main_module";
+import type { InitOutput as RustModule } from "../wasm/build/wasm_main_module";
+import { Float32Vec, get_settings, not_atan2, triple_array, triple_array_with_vec } from "../wasm/build/wasm_main_module";
 import { notAtan2 } from "./not-atan";
 
 // This is the stupidest micro-benchmark, but still useful for getting an idea on how much the function call costs.
-export function stupidMicroBenchmarkSimple(cppModule: MainModule, rustModule: RustWasmModule): string {
+export function stupidMicroBenchmarkSimple(module: RustModule): string {
     console.log('Starting stupidMicroBenchmarkSimple');
     const totalStartTime = performance.now();
-    let result = getResultPrologue(cppModule);
+    let result = getResultPrologue();
 
     const numValues = 25000000;
     const numTries = 3;
@@ -27,16 +27,12 @@ export function stupidMicroBenchmarkSimple(cppModule: MainModule, rustModule: Ru
     let _unused = 0;
     const typedArrayMathAtan2 = [];
     const typedArrayNotAtan2 = [];
-    const typedArrayWasmStdAtan2 = [];
-    const typedArrayWasmNotAtan2 = [];
-    const typedArrayWasmEmbindNotAtan2 = [];
     const typedArrayRustNotAtan2 = [];
+    const typedArrayRustNotAtan2Module = [];
     const arrayMathAtan2 = [];
     const arrayNotAtan2 = [];
-    const arrayWasmStdAtan2 = [];
-    const arrayWasmNotAtan2 = [];
-    const arrayWasmEmbindNotAtan2 = [];
     const arrayRustNotAtan2 = [];
+    const arrayRustNotAtan2Module = [];
     for (let i = 0; i < numTries; i++) {
         let startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
@@ -52,27 +48,15 @@ export function stupidMicroBenchmarkSimple(cppModule: MainModule, rustModule: Ru
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
-            _unused += cppModule._stdAtan2(typedY[j], typedX[j]);
-        }
-        typedArrayWasmStdAtan2.push((performance.now() - startTime).toFixed(0));
-
-        startTime = performance.now();
-        for (let j = 0; j < numValues; j++) {
-            _unused += cppModule._notAtan2(typedY[j], typedX[j]);
-        }
-        typedArrayWasmNotAtan2.push((performance.now() - startTime).toFixed(0));
-
-        startTime = performance.now();
-        for (let j = 0; j < numValues; j++) {
-            _unused += cppModule.embindNotAtan2(typedY[j], typedX[j]);
-        }
-        typedArrayWasmEmbindNotAtan2.push((performance.now() - startTime).toFixed(0));
-
-        startTime = performance.now();
-        for (let j = 0; j < numValues; j++) {
-            _unused += rustModule.not_atan2(typedY[j], typedX[j]);
+            _unused += not_atan2(typedY[j], typedX[j]);
         }
         typedArrayRustNotAtan2.push((performance.now() - startTime).toFixed(0));
+
+        startTime = performance.now();
+        for (let j = 0; j < numValues; j++) {
+            _unused += module.not_atan2(typedY[j], typedX[j]);
+        }
+        typedArrayRustNotAtan2Module.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
@@ -88,47 +72,28 @@ export function stupidMicroBenchmarkSimple(cppModule: MainModule, rustModule: Ru
 
         startTime = performance.now();
         for (let j = 0; j < numValues; j++) {
-            _unused += cppModule._stdAtan2(untypedY[j], untypedX[j]);
-        }
-        arrayWasmStdAtan2.push((performance.now() - startTime).toFixed(0));
-
-        startTime = performance.now();
-        for (let j = 0; j < numValues; j++) {
-            _unused += cppModule._notAtan2(untypedY[j], untypedX[j]);
-        }
-        arrayWasmNotAtan2.push((performance.now() - startTime).toFixed(0));
-
-        startTime = performance.now();
-        for (let j = 0; j < numValues; j++) {
-            _unused += cppModule.embindNotAtan2(untypedY[j], untypedX[j]);
-        }
-        arrayWasmEmbindNotAtan2.push((performance.now() - startTime).toFixed(0));
-
-        startTime = performance.now();
-        for (let j = 0; j < numValues; j++) {
-            _unused += rustModule.not_atan2(untypedY[j], untypedX[j]);
+            _unused += not_atan2(untypedY[j], untypedX[j]);
         }
         arrayRustNotAtan2.push((performance.now() - startTime).toFixed(0));
+
+        startTime = performance.now();
+        for (let j = 0; j < numValues; j++) {
+            _unused += module.not_atan2(untypedY[j], untypedX[j]);
+        }
+        arrayRustNotAtan2Module.push((performance.now() - startTime).toFixed(0));
     }
     result += `TypedArray Math.atan2: ${typedArrayMathAtan2}ms\n`;
     result += `TypedArray notAtan2: ${typedArrayNotAtan2}ms\n`;
-    result += `TypedArray WASM std::atan2: ${typedArrayWasmStdAtan2}ms\n`;
-    result += `TypedArray WASM notAtan2: ${typedArrayWasmNotAtan2}ms\n`;
-    result += `TypedArray WASM embind notAtan2: ${typedArrayWasmEmbindNotAtan2}ms\n`;
     result += `TypedArray Rust not_atan2: ${typedArrayRustNotAtan2}ms\n`;
+    result += `TypedArray Rust not_atan2 module: ${typedArrayRustNotAtan2Module}ms\n`;
     result += `Array Math.atan2: ${arrayMathAtan2}ms\n`;
     result += `Array notAtan2: ${arrayNotAtan2}ms\n`;
-    result += `Array WASM std::atan2: ${arrayWasmStdAtan2}ms\n`;
-    result += `Array WASM notAtan2: ${arrayWasmNotAtan2}ms\n`;
-    result += `Array WASM embind notAtan2: ${arrayWasmEmbindNotAtan2}ms\n`;
     result += `Array Rust not_atan2: ${arrayRustNotAtan2}ms\n`;
+    result += `Array Rust not_atan2 module: ${arrayRustNotAtan2Module}ms\n`;
 
     console.log(`Finished stupidMicroBenchmarkSimple in ${performance.now() - totalStartTime}ms`)
     return result;
 }
-
-// Memory for PodArray return values: data + size. We assume the wasm module is 32-bit.
-let resultPodArrayPtr: number;
 
 function tripleJs(n: number) {
     const inputArray = new Float32Array(n);
@@ -152,42 +117,9 @@ function tripleUntypedJs(n: number) {
     }
 }
 
-// Allocate memory with malloc, directly write into it, call a function, then read the results from the wasm memory.
-function tripleRawPtrDirect(module: MainModule, n: number) {
-    if (resultPodArrayPtr === undefined) {
-        resultPodArrayPtr = module._malloc(8);
-    }
-    const base = 123.4;
-    const inputPtr = module._malloc(n * 4);
-    // for (let i = 0; i < n; i++) {
-    //     module.HEAPF32[inputPtr / 4 + i] = base + i;
-    // }
-    // Accessing HEAPF32 directly is both cumbersome and a pessimization at least when using mimalloc on Chrome.
-    const inputArray = module.HEAPF32.subarray(inputPtr / 4, inputPtr / 4 + n);
-    for (let i = 0; i < n; i++) {
-        inputArray[i] = base + i;
-    }
-    module._tripleRawPtr(resultPodArrayPtr, inputPtr, n);
-    const resultDataPtr = module.HEAPU32[resultPodArrayPtr / 4];
-    const resultSize = module.HEAPU32[resultPodArrayPtr / 4 + 1];
-    const lastResult = module.HEAPF32[resultDataPtr / 4 + resultSize - 1];
-    const resultDiff = lastResult - 3 * (base + n - 1);
-    // Account for difference between float and double.
-    if (Math.abs(resultDiff) > 1e-5 * n) {
-        throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
-    }
-    module._free(resultDataPtr);
-    module._free(inputPtr);
-}
-
-// Create a Float32Array, allocate memory with malloc, copy array into memory, call a function, then read the results
-// from the wasm memory.
 let cachedInput: Float32Array;
-function tripleRawPtrCopy(module: MainModule, n: number) {
-    if (resultPodArrayPtr === undefined) {
-        resultPodArrayPtr = module._malloc(8);
-    }
-    const base = 567.8;
+function tripleRustArray(n: number) {
+    const base = 765.4;
     // We do not want to benchmark JS GC, save the last array.
     if (cachedInput === undefined || cachedInput.length !== n) {
         cachedInput = new Float32Array(n);
@@ -195,90 +127,165 @@ function tripleRawPtrCopy(module: MainModule, n: number) {
     for (let i = 0; i < n; i++) {
         cachedInput[i] = base + i;
     }
-    const inputPtr = module._malloc(n * 4);
-    module.HEAPF32.set(cachedInput, inputPtr / 4);
-    module._tripleRawPtr(resultPodArrayPtr, inputPtr, n);
-    const resultDataPtr = module.HEAPU32[resultPodArrayPtr / 4];
-    const resultSize = module.HEAPU32[resultPodArrayPtr / 4 + 1];
-    const lastResult = module.HEAPF32[resultDataPtr / 4 + resultSize - 1];
-    const resultDiff = lastResult - 3 * (base + n - 1);
-    // Account for difference between float and double.
-    if (Math.abs(resultDiff) > 1e-5 * n) {
-        throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
-    }
-    module._free(resultDataPtr);
-    module._free(inputPtr);
-}
 
-// Create a Float32Array, allocate memory with malloc, copy array into memory, call a function, then read the results
-// from the wasm memory.
-function tripleEmbindRawPtrCopy(module: MainModule, n: number) {
-    if (resultPodArrayPtr === undefined) {
-        resultPodArrayPtr = module._malloc(8);
-    }
-    const base = 5678.9;
-    if (cachedInput === undefined || cachedInput.length !== n) {
-        cachedInput = new Float32Array(n);
-    }
-    for (let i = 0; i < n; i++) {
-        cachedInput[i] = base + i;
-    }
-    const input = new module.Float32PodArray(n);
-    module.HEAPF32.set(cachedInput, input.dataPtr / 4);
-    const result = module.embindTripleRawPtr(input.dataPtr, input.size);
-    const lastResult = module.HEAPF32[result.dataPtr / 4 + result.size - 1];
-    const resultDiff = lastResult - 3 * (base + n - 1);
-    // Account for difference between float and double.
-    if (Math.abs(resultDiff) > 1e-5 * n) {
-        throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
-    }
-    result.freeData();
-    input.freeData();
-}
-
-// Create a Float32Array, call an embind function, then read the results from the wasm memory.
-function tripleEmbindCopy(module: MainModule, n: number) {
-    const base = 345.6;
-    if (cachedInput === undefined || cachedInput.length !== n) {
-        cachedInput = new Float32Array(n);
-    }
-    for (let i = 0; i < n; i++) {
-        cachedInput[i] = base + i;
-    }
-    const result = module.embindTriple(cachedInput);
+    const result = triple_array(cachedInput);
     const lastResult = result[result.length - 1];
     const resultDiff = lastResult - 3 * (base + n - 1);
     // Account for difference between float and double.
     if (Math.abs(resultDiff) > 1e-5 * n) {
         throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
     }
-    module._free(result.byteOffset);
+}
+
+function tripleRustArrayVec(module: RustModule, n: number) {
+    const base = 543.2;
+    // We do not want to benchmark JS GC, save the last array.
+    if (cachedInput === undefined || cachedInput.length !== n) {
+        cachedInput = new Float32Array(n);
+    }
+    for (let i = 0; i < n; i++) {
+        cachedInput[i] = base + i;
+    }
+    const inputVec = new Float32Vec(n);
+    // array is much slower on Firefox (a bit slower on Chrome) than creating Float32Array in JS
+    // inputVec.array.set(cachedInput);
+    const input = new Float32Array(module.memory.buffer, inputVec.data_ptr, n);
+    input.set(cachedInput);
+
+    const resultVec = triple_array_with_vec(inputVec);
+    // const result = resultVec.array;
+    const result = new Float32Array(module.memory.buffer, resultVec.data_ptr, resultVec.len);
+    const lastResult = result[result.length - 1];
+    const resultDiff = lastResult - 3 * (base + n - 1);
+    // Account for difference between float and double.
+    if (Math.abs(resultDiff) > 1e-5 * n) {
+        throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
+    }
+    resultVec.free();
+    inputVec.free();
+}
+
+// This is the same code as tripleRustArrayVec, but using .array property instead of data_ptr and len.
+function tripleRustArrayVecV2(n: number) {
+    const base = 543.9;
+    // We do not want to benchmark JS GC, save the last array.
+    if (cachedInput === undefined || cachedInput.length !== n) {
+        cachedInput = new Float32Array(n);
+    }
+    for (let i = 0; i < n; i++) {
+        cachedInput[i] = base + i;
+    }
+    const inputVec = new Float32Vec(n);
+    inputVec.array.set(cachedInput);
+
+    const resultVec = triple_array_with_vec(inputVec);
+    const result = resultVec.array;
+    const lastResult = result[result.length - 1];
+    const resultDiff = lastResult - 3 * (base + n - 1);
+    // Account for difference between float and double.
+    if (Math.abs(resultDiff) > 1e-5 * n) {
+        throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
+    }
+    resultVec.free();
+    inputVec.free();
+}
+
+function tripleRustArrayVecNoCopy(module: RustModule, n: number) {
+    const base = 3546.2;
+    const inputVec = new Float32Vec(n);
+    // See comment in tripleRustArrayVec
+    // const input = inputVec.array;
+    const input = new Float32Array(module.memory.buffer, inputVec.data_ptr, n);
+    for (let i = 0; i < n; i++) {
+        input[i] = base + i;
+    }
+
+    const resultVec = triple_array_with_vec(inputVec);
+    // See comment above
+    // const result = resultVec.array;
+    const result = new Float32Array(module.memory.buffer, resultVec.data_ptr, resultVec.len);
+    const lastResult = result[result.length - 1];
+    const resultDiff = lastResult - 3 * (base + n - 1);
+    // Account for difference between float and double.
+    if (Math.abs(resultDiff) > 1e-5 * n) {
+        throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
+    }
+    resultVec.free();
+    inputVec.free();
+}
+
+let resultSpanPtr: number;
+
+// Similar to HEAPF32 in Emscripten.
+let heapF32: Float32Array = new Float32Array();
+function checkHeapF32(module: RustModule) {
+    if (heapF32.buffer.byteLength === 0) {
+        heapF32 = new Float32Array(module.memory.buffer);
+    }
+}
+
+// Similar to HEAPU32 in Emscripten.
+let heapU32: Uint32Array = new Uint32Array();
+function checkHeapU32(module: RustModule) {
+    if (heapU32.buffer.byteLength === 0) {
+        heapU32 = new Uint32Array(module.memory.buffer);
+    }
+}
+
+function tripleRustArrayRaw(module: RustModule, n: number) {
+    if (resultSpanPtr === undefined) {
+        resultSpanPtr = module.alloc(8);
+    }
+
+    const base = 4567.89;
+    const inputDataPtr = module.alloc(n * 4);
+    checkHeapF32(module);
+    for (let i = 0; i < n; i++) {
+        heapF32[inputDataPtr / 4 + i] = base + i;
+    }
+
+    module.triple_array_raw(resultSpanPtr, inputDataPtr, n);
+    checkHeapU32(module);
+    const resultDataPtr = heapU32[resultSpanPtr / 4];
+    const resultLen = heapU32[resultSpanPtr / 4 + 1];
+    checkHeapF32(module);
+    const lastResult = heapF32[resultDataPtr / 4 + resultLen - 1];
+    const resultDiff = lastResult - 3 * (base + n - 1);
+    // Account for difference between float and double.
+    if (Math.abs(resultDiff) > 1e-5 * n) {
+        throw new Error(`Expected ${3 * (base + n - 1)}, got ${lastResult}, diff = ${resultDiff.toExponential()}`);
+    }
+    module.dealloc(resultDataPtr, resultLen * 4);
+    module.dealloc(inputDataPtr, n * 4);
 }
 
 // This is the micro-benchmark measures the costs of passing Float32Array.
-export function stupidMicroBenchmarkArrays(cppModule: MainModule, _rustModule: RustWasmModule): string {
+export function stupidMicroBenchmarkArrays(module: RustModule): string {
     console.log('Starting stupidMicroBenchmarkArrays');
     const totalStartTime = performance.now();
-    let result = getResultPrologue(cppModule);
+    let result = getResultPrologue();
 
     const totalData = 100000000;
-    const numTries = 3;
+    const numTries = 4;
 
     const js100: string[] = [];
     const jsUntyped100: string[] = [];
-    const rawPtrDirect100: string[] = [];
-    const rawPtrCopy100: string[] = [];
-    const embindRawPtrCopy100: string[] = [];
-    const embindCopy100: string[] = [];
+    const rustArray100: string[] = [];
+    const rustArrayVec100: string[] = [];
+    const rustArrayVecV2100: string[] = [];
+    const rustArrayVecNoCopy100: string[] = [];
+    const rustArrayRaw100: string[] = [];
     const js10000: string[] = [];
     const jsUntyped10000: string[] = [];
-    const rawPtrDirect10000: string[] = [];
-    const rawPtrCopy10000: string[] = [];
-    const embindRawPtrCopy10000: string[] = [];
-    const embindCopy10000: string[] = [];
+    const rustArray10000: string[] = [];
+    const rustArrayVec10000: string[] = [];
+    const rustArrayVecV210000: string[] = [];
+    const rustArrayVecNoCopy10000: string[] = [];
+    const rustArrayRaw10000: string[] = [];
     for (let i = 0; i < numTries; i++) {
-        console.log(`Heap size ${cppModule._getHeapSize()}, heap max: ${cppModule._getMaxHeapSize()}, buffer: `, cppModule.HEAPF32.buffer);
-        let startTime = performance.now();
+        console.log(`Running try ${i} out of ${numTries}`);
+        let startTime;
+        startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
             tripleJs(100);
         }
@@ -292,27 +299,33 @@ export function stupidMicroBenchmarkArrays(cppModule: MainModule, _rustModule: R
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleRawPtrDirect(cppModule, 100);
+            tripleRustArray(100);
         }
-        rawPtrDirect100.push((performance.now() - startTime).toFixed(0));
+        rustArray100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleRawPtrCopy(cppModule, 100);
+            tripleRustArrayVec(module, 100);
         }
-        rawPtrCopy100.push((performance.now() - startTime).toFixed(0));
+        rustArrayVec100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleEmbindRawPtrCopy(cppModule, 100);
+            tripleRustArrayVecV2(100);
         }
-        embindRawPtrCopy100.push((performance.now() - startTime).toFixed(0));
+        rustArrayVecV2100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleEmbindCopy(cppModule, 100);
+            tripleRustArrayVecNoCopy(module, 100);
         }
-        embindCopy100.push((performance.now() - startTime).toFixed(0));
+        rustArrayVecNoCopy100.push((performance.now() - startTime).toFixed(0));
+
+        startTime = performance.now();
+        for (let j = 0; j < totalData / 100; j++) {
+            tripleRustArrayRaw(module, 100);
+        }
+        rustArrayRaw100.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
@@ -328,47 +341,55 @@ export function stupidMicroBenchmarkArrays(cppModule: MainModule, _rustModule: R
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleRawPtrDirect(cppModule, 10000);
+            tripleRustArray(10000);
         }
-        rawPtrDirect10000.push((performance.now() - startTime).toFixed(0));
+        rustArray10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleRawPtrCopy(cppModule, 10000);
+            tripleRustArrayVec(module, 10000);
         }
-        rawPtrCopy10000.push((performance.now() - startTime).toFixed(0));
+        rustArrayVec10000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleEmbindRawPtrCopy(cppModule, 10000);
+            tripleRustArrayVecV2(10000);
         }
-        embindRawPtrCopy10000.push((performance.now() - startTime).toFixed(0));
+        rustArrayVecV210000.push((performance.now() - startTime).toFixed(0));
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleEmbindCopy(cppModule, 10000);
+            tripleRustArrayVecNoCopy(module, 10000);
         }
-        embindCopy10000.push((performance.now() - startTime).toFixed(0));
+        rustArrayVecNoCopy10000.push((performance.now() - startTime).toFixed(0));
+
+        startTime = performance.now();
+        for (let j = 0; j < totalData / 10000; j++) {
+            tripleRustArrayRaw(module, 10000);
+        }
+        rustArrayRaw10000.push((performance.now() - startTime).toFixed(0));
     }
     result += `JS(100): ${js100}ms (per ${totalData / 100} calls)\n`;
     result += `JS untyped(100): ${jsUntyped100}ms (per ${totalData / 100} calls)\n`;
-    result += `tripleRawPtrDirect(100): ${rawPtrDirect100}ms (per ${totalData / 100} calls)\n`;
-    result += `tripleRawPtrCopy(100): ${rawPtrCopy100}ms (per ${totalData / 100} calls)\n`;
-    result += `tripleEmbindRawPtrCopy(100): ${embindRawPtrCopy100}ms (per ${totalData / 100} calls)\n`;
-    result += `tripleEmbindCopy(100): ${embindCopy100}ms (per ${totalData / 100} calls)\n`;
+    result += `tripleRustArray(100): ${rustArray100}ms (per ${totalData / 100} calls)\n`;
+    result += `tripleRustArrayVec(100): ${rustArrayVec100}ms (per ${totalData / 100} calls)\n`;
+    result += `tripleRustArrayVecV2(100): ${rustArrayVecV2100}ms (per ${totalData / 100} calls)\n`;
+    result += `tripleRustArrayVecNoCopy(100): ${rustArrayVecNoCopy100}ms (per ${totalData / 100} calls)\n`;
+    result += `tripleRustArrayRaw(100): ${rustArrayRaw100}ms (per ${totalData / 100} calls)\n`;
     result += `JS(10000): ${js10000}ms (per ${totalData / 10000} calls)\n`;
     result += `JS untyped(10000): ${jsUntyped10000}ms (per ${totalData / 10000} calls)\n`;
-    result += `tripleRawPtrDirect(10000): ${rawPtrDirect10000}ms (per ${totalData / 10000} calls)\n`;
-    result += `tripleRawPtrCopy(10000): ${rawPtrCopy10000}ms (per ${totalData / 10000} calls)\n`;
-    result += `tripleEmbindRawPtrCopy(10000): ${embindRawPtrCopy10000}ms (per ${totalData / 10000} calls)\n`;
-    result += `tripleEmbindCopy(10000): ${embindCopy10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleRustArray(10000): ${rustArray10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleRustArrayVec(10000): ${rustArrayVec10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleRustArrayVecV2(10000): ${rustArrayVecV210000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleRustArrayVecNoCopy(10000): ${rustArrayVecNoCopy10000}ms (per ${totalData / 10000} calls)\n`;
+    result += `tripleRustArrayRaw(10000): ${rustArrayRaw10000}ms (per ${totalData / 10000} calls)\n`;
 
     console.log(`Finished stupidMicroBenchmarkArrays in ${performance.now() - totalStartTime}ms`)
     return result;
 }
 
-function getResultPrologue(module: MainModule): string {
-    let result = navigator.userAgent + '\nEmscripten: ' + module.getBuildSettings() + '\n';
+function getResultPrologue(): string {
+    let result = navigator.userAgent + '\nRust: ' + get_settings() + '\n';
     if (!window.crossOriginIsolated) {
         result += 'WARNING: Window is not cross-origin isolated, performance.now() precision is low\n\n';
     } else {

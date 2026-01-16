@@ -27,7 +27,7 @@ fi
 
 # Do not run wasm-bindgen (relatively fast) and wasm-opt (relatively slow) on null builds.
 CURRENT_HASH=`sha256sum "$WASM_INPUT"`
-HASH_FILE="$BUILD_DIR/last_wasm_hash"
+HASH_FILE="$BUILD_DIR/wasm_main_module.hash"
 if [ -f "$HASH_FILE" ]; then
     PREVIOUS_HASH=`cat "$HASH_FILE"`
     if [ "$CURRENT_HASH" = "$PREVIOUS_HASH" ]; then
@@ -39,10 +39,17 @@ fi
 echo "Running wasm-bindgen..."
 time "$BUILD_DIR/bin/wasm-bindgen" --target web --out-dir "$BUILD_DIR" "$WASM_INPUT"
 
+# We disable FinalizationRegistry for performance: registering/unregistering every return object by wasm-bindgen is
+# very slow on Firefox and moderately slow on Chrome. FinalizationRegistry is a not so great idea anyway, e.g. see
+# https://blog.cloudflare.com/en-en/we-shipped-finalizationregistry-in-workers-why-you-should-never-use-it/
+#
+# It would've been nice if this could be configured via cli flags...
+echo "Patching wasm_main_module.js to disable FinalizationRegistry..."
+sed -i '' "s/(typeof FinalizationRegistry === 'undefined')/(true)/g" "$BUILD_DIR/wasm_main_module.js"
+
 echo "Running wasm-opt for optimization..."
 WASM_OUTPUT="$BUILD_DIR/wasm_main_module_bg.wasm"
-time npx wasm-opt -O "$WASM_OUTPUT" -o "$WASM_OUTPUT.opt"
+time npx wasm-opt -O -g "$WASM_OUTPUT" -o "$WASM_OUTPUT.opt"
 mv "$WASM_OUTPUT.opt" "$WASM_OUTPUT"
 
-# Store the new hash
 echo "$CURRENT_HASH" > "$HASH_FILE"

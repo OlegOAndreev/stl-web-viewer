@@ -23,14 +23,12 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { BufferGeometryUtils, TrackballControls } from 'three/examples/jsm/Addons.js';
 
-import MainModuleFactory from '../wasm-cpp/build/main-wasm-module.js';
-import RustWasmModuleFactory from '../wasm-rs/build/wasm_main_module.js';
+import { default as initRustModule } from '../wasm/build/wasm_main_module';
 import { splitDisjointGeometry } from './split-geometry';
 import { stupidMicroBenchmarkArrays, stupidMicroBenchmarkSimple } from './stupid-microbenchmark';
 import { computeTriangleNormals } from './triangle-normals';
 
-const mainModule = await MainModuleFactory();
-const rustWasmModule = await RustWasmModuleFactory();
+const rustModule = await initRustModule();
 
 const FOV = 80;
 const NEAR_Z = 0.1;
@@ -211,9 +209,9 @@ function createGui(): GUI {
         stupidMicroBenchmarkResults!.style.display = 'block';
         stupidMicroBenchmarkResults!.textContent = results + '\n[Click to copy]';
     };
-    benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkSimple(mainModule, rustWasmModule))) as CallableFunction, 'call')
+    benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkSimple(rustModule))) as CallableFunction, 'call')
         .name('Run simple call');
-    benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkArrays(mainModule, rustWasmModule))) as CallableFunction, 'call')
+    benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkArrays(rustModule))) as CallableFunction, 'call')
         .name('Run arrays');
     benchmarkFolder.close();
     miscFolder.close();
