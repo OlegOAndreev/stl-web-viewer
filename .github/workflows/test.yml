@@ -37,7 +37,5 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: Install build dependencies
-        run: ./wasm/install-build-deps.sh
       - name: Build
         run: npm run test
