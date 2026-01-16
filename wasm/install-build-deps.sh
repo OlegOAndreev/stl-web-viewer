@@ -7,6 +7,7 @@ DEST_DIR="./build"
 
 mkdir -p "$DEST_DIR"
 
+rustup show
 rustup target add wasm32-unknown-unknown
 
 WASM_BINDGEN_VERSION=`cargo metadata --format-version=1 | jq -r '.packages[] | select(.name == "wasm-bindgen") | .version'`
