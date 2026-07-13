@@ -49,8 +49,9 @@ echo "Patching wasm_main_module.js to disable FinalizationRegistry..."
 sed -i.bak "s/(typeof FinalizationRegistry === 'undefined')/(true)/g" "$BUILD_DIR/wasm_main_module.js" && rm -f "$BUILD_DIR/wasm_main_module.js.bak"
 
 echo "Running wasm-opt for optimization..."
+WASM_OPT=../node_modules/binaryen/bin/wasm-opt
 WASM_OUTPUT="$BUILD_DIR/wasm_main_module_bg.wasm"
-time npx wasm-opt -O -g "$WASM_OUTPUT" -o "$WASM_OUTPUT.opt"
+time $WASM_OPT -O -g "$WASM_OUTPUT" -o "$WASM_OUTPUT.opt"
 mv "$WASM_OUTPUT.opt" "$WASM_OUTPUT"
 
 echo "$CURRENT_HASH" > "$HASH_FILE"
