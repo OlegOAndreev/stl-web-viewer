@@ -11,9 +11,7 @@ impl Float32Vec {
     pub fn new(len: usize) -> Float32Vec {
         let mut data = Vec::new();
         data.resize(len, 0.0);
-        Float32Vec {
-            data,
-        }
+        Float32Vec { data }
     }
 
     #[wasm_bindgen(getter)]
@@ -40,9 +38,7 @@ pub fn alloc(n: usize) -> *mut u8 {
 
 #[wasm_bindgen]
 pub fn dealloc(ptr: *mut u8, n: usize) {
-    unsafe {
-        std::alloc::dealloc(ptr, std::alloc::Layout::from_size_align_unchecked(n, 16))
-    }
+    unsafe { std::alloc::dealloc(ptr, std::alloc::Layout::from_size_align_unchecked(n, 16)) }
 }
 
 #[repr(C)]
@@ -66,9 +62,7 @@ pub fn triple_array_with_vec(input: &Float32Vec) -> Float32Vec {
     for (src, dst) in input.data.iter().zip(&mut result) {
         *dst = *src * 3.0;
     }
-    Float32Vec {
-        data: result,
-    }
+    Float32Vec { data: result }
 }
 
 #[wasm_bindgen]

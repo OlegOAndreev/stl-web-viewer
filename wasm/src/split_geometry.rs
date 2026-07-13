@@ -107,7 +107,7 @@ pub fn split_disjoint_geometry(pos: &[f32]) -> Vec<Vec<f32>> {
     let mut part = vec![];
     let mut result = vec![];
 
-    // Helper function to visit an edge and add neighboring triangle to the stack. 
+    // Helper function to visit an edge and add neighboring triangle to the stack.
     let visit_edge = |stack: &mut Vec<usize>, visited: &mut [bool], v1: Vector3, v2: Vector3, v3: Vector3| {
         // We need the neighbor to have a reverse edge
         if let Some(tris) = edge_map.get(&Edge::new(v2, v1)) {

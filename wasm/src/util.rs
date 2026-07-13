@@ -38,14 +38,6 @@ pub fn get_settings() -> String {
     format!(
         "optimized: {}, atomics: {}, bulk-memory: {}, multivalue: {}, nontrapping-fptoint: {}, sign-ext: {}, \
          simd128: {}, relaxed-simd: {}, memory: {}",
-        optimized,
-        atomics,
-        bulk_memory,
-        multivalue,
-        nontrapping_fptoint,
-        sign_ext,
-        simd128,
-        relaxed_simd,
-        memory_bytes
+        optimized, atomics, bulk_memory, multivalue, nontrapping_fptoint, sign_ext, simd128, relaxed_simd, memory_bytes
     )
 }

@@ -74,22 +74,8 @@ mod tests {
             false
         }
 
-        let values = [
-            f32::NEG_INFINITY,
-            -1e9,
-            -1e3,
-            -1.0,
-            -1e-3,
-            -1e-9,
-            -0.0,
-            0.0,
-            1e-9,
-            1e-3,
-            1.0,
-            1e3,
-            1e9,
-            f32::INFINITY,
-        ];
+        let values =
+            [f32::NEG_INFINITY, -1e9, -1e3, -1.0, -1e-3, -1e-9, -0.0, 0.0, 1e-9, 1e-3, 1.0, 1e3, 1e9, f32::INFINITY];
 
         for &y1 in &values {
             for &x1 in &values {
