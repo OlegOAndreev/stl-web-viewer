@@ -2,9 +2,9 @@ import type { UserConfig } from 'vite'
 
 export default {
   // For github pages
-  base: "/stl-web-viewer/",
+  base: '/stl-web-viewer/',
   worker: {
-    format: "es",
+    format: 'es',
   },
   build: {
     chunkSizeWarningLimit: 1500,
