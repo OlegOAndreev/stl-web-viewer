@@ -169,6 +169,7 @@ function createGui(): GUI {
     rFolder.add(settings, 'cameraIsPerspective')
         .name('Perspective camera')
         .onChange((perspective: boolean) => {
+            curControls.dispose();
             curControls = createControls(perspective)
         });
     rFolder.add(settings, 'showWireframe')
@@ -191,7 +192,7 @@ function createGui(): GUI {
     miscFolder.add(settings, 'showStats')
         .name('Show stats')
         .onChange((v: boolean) => {
-            statsPanel.dom.style.display = v ? 'block' : 'none';
+            statsPanel.dom.hidden = !v;
         });
 
     const benchmarkFolder = miscFolder.addFolder('Stupid benchmarks');
@@ -199,14 +200,14 @@ function createGui(): GUI {
     if (!stupidMicroBenchmarkResults) {
         throw new Error('Element with id "stupid-micro-benchmark-results" not found');
     }
-    stupidMicroBenchmarkResults.style.display = 'none';
+    stupidMicroBenchmarkResults.hidden = true;
     stupidMicroBenchmarkResults.onclick = () => {
         navigator.clipboard.writeText(stupidMicroBenchmarkResultsToCopy);
-        stupidMicroBenchmarkResults.style.display = 'none';
+        stupidMicroBenchmarkResults.hidden = true;
     };
     function setBenchResults(results: string) {
         stupidMicroBenchmarkResultsToCopy = results;
-        stupidMicroBenchmarkResults!.style.display = 'block';
+        stupidMicroBenchmarkResults!.hidden = false;
         stupidMicroBenchmarkResults!.textContent = results + '\n[Click to copy]';
     };
     benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkSimple(rustModule))) as CallableFunction, 'call')
@@ -225,7 +226,7 @@ function createStatsPanel(): Stats {
     statsPanel.dom.id = 'stats-panel';
     statsPanel.dom.style.cssText = '';
     document.body.appendChild(statsPanel.dom);
-    statsPanel.dom.style.display = settings.showStats ? 'block' : 'none';
+    statsPanel.dom.hidden = !settings.showStats;
     return statsPanel;
 }
 
@@ -296,7 +297,7 @@ async function loadSavedFile() {
 }
 
 async function saveFile(filename: string, contents: ArrayBuffer) {
-    // Store the model name and contents to local storage.
+    // Store the model name and contents locally.
     settings.latestModelName = filename;
     saveSettings();
     const writable = await savedModelHandle.createWritable();
@@ -307,14 +308,14 @@ async function saveFile(filename: string, contents: ArrayBuffer) {
 
 async function onLoadFile(filename: string, contents: ArrayBuffer) {
     console.log(`Loading file ${filename} with length ${contents.byteLength}`);
-    setTitle(filename);
-
-    disposeModel(curModel);
     const stlLoader = new STLLoader();
     let startTime = performance.now();
     const stlGeo = stlLoader.parse(contents);
     let deltaTime = performance.now() - startTime;
     console.log(`Loading ${filename} took ${deltaTime}ms`);
+
+    disposeModel(curModel);
+    setTitle(filename);
 
     startTime = performance.now();
     curModel = createModelFromGeo(stlGeo);
@@ -405,6 +406,7 @@ function disposeModel(model: PreparedModel) {
         model.wireframes[i].geometry.dispose();
     }
     for (let i = 0; i < model.normals.length; i++) {
+        scene.remove(model.normals[i]);
         model.normals[i].geometry.dispose();
     }
 }

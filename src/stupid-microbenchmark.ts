@@ -259,7 +259,7 @@ function tripleRustArrayRaw(module: RustModule, n: number) {
     module.dealloc(inputDataPtr, n * 4);
 }
 
-// This is the micro-benchmark measures the costs of passing Float32Array.
+// This micro-benchmark measures the costs of passing Float32Array.
 export function stupidMicroBenchmarkArrays(module: RustModule): string {
     console.log('Starting stupidMicroBenchmarkArrays');
     const totalStartTime = performance.now();

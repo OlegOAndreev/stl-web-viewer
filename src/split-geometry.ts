@@ -99,7 +99,6 @@ export function splitDisjointGeometry(geo: BufferGeometry): BufferGeometry[] {
         // outside of that range (basically what Math.atan2 does).
         let bestTriIdx = -1;
         let bestAngle = -Infinity;
-        const epsilon = 1e-3 * edgeVec.length();
         for (let i = 0; i < tris.length; i++) {
             // dot = curNormal * tris[i].normal, cross = (curNormal x tris[i].normal) * edgeVec, cotan = dot / cross
             const dot = tmp.copy(curNormal).dot(tris[i].normal);
@@ -107,7 +106,7 @@ export function splitDisjointGeometry(geo: BufferGeometry): BufferGeometry[] {
             let angle = notAtan2(cross, dot);
             // If the angle is too close to PI, the triangles are almost parallel, consider them to be parallel and
             // belonging to different bodies.
-            if (angle > Math.PI - epsilon) {
+            if (angle > Math.PI - 1e-3) {
                 angle = -Math.PI;
             }
             if (angle > bestAngle) {
@@ -119,7 +118,7 @@ export function splitDisjointGeometry(geo: BufferGeometry): BufferGeometry[] {
     }
 
     function visitEdge(v1: Vector3, v2: Vector3, v3: Vector3) {
-        // We need the neighbor to have a reverse edge 
+        // We need the neighbor to have a reverse edge
         const tris = edgeMap.get(getEdgeKey(v2, v1));
         if (!tris) {
             return;

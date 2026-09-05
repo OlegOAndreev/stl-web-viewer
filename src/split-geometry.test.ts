@@ -27,7 +27,6 @@ test('splitDisjointGeometry basic test', () => {
     const geo1Tris = getTris(geo1);
     const geo = BufferGeometryUtils.mergeGeometries([geo0, geo1]);
     const parts = splitDisjointGeometry(geo);
-    assert.equal(parts.length, 2);
 
     assert.equal(parts.length, 2);
     const tris0 = getTris(parts[0]);
@@ -47,7 +46,7 @@ test('splitDisjointGeometry cube test', () => {
 });
 
 test('splitDisjointGeometry contacting cube test', () => {
-    // Two boxes touching against one side
+    // Two boxes touching along one side
     const cube0 = new BoxGeometry(1, 1, 1);
     const cube0Tris = getTris(cube0);
     const cube1 = new BoxGeometry(1, 1, 1);
@@ -79,7 +78,7 @@ test('splitDisjointGeometry angles test', () => {
     const angle0Tris = getTris(angle0);
     const angle1 = new BufferGeometry().setFromPoints([
         new Vector3(0, 0, 0),
-        // Even if we have slighly overlapping angles, we still should not assume they belong to disjoint bodies.
+        // Even if we have slightly overlapping angles, we still should not assume they belong to disjoint bodies.
         new Vector3(2, 0.1999, 0),
         new Vector3(0, 0, 1),
 
@@ -199,9 +198,9 @@ function getPoints(geo: BufferGeometry): Vector3[] {
     const result: Vector3[] = [];
     for (let i = 0; i < attr.length / 3; i++) {
         const off = i * 3;
-        const v0 = attr[off * 3];
-        const v1 = attr[off * 3 + 1];
-        const v2 = attr[off * 3 + 2];
+        const v0 = attr[off];
+        const v1 = attr[off + 1];
+        const v2 = attr[off + 2];
         const key = `${v0};${v1};${v2}`;
         if (unique.has(key)) {
             continue;

@@ -1,6 +1,6 @@
-// An alternative to Math.atan2 which maps all values of y/x to the range (-PI, PI) with the similar order as
-// Math.atan2: notTan(x) < notTan(y) mostly equivalent to atan2(x) < atan2(y), unless either a) the tangents differ only
-// in a few ULP (see tests) or b) inputs are BOTH zeros or infinitys.
+// An alternative to Math.atan2 which maps all values of y/x to the range [-PI, PI] with the similar order as
+// Math.atan2: notAtan2(x) < notAtan2(y) mostly equivalent to atan2(x) < atan2(y), unless either a) the tangents differ
+// only in a few ULP (see tests) or b) inputs are BOTH zeros or infinities.
 export function notAtan2(y: number, x: number): number {
     // Returned ranges:
     //   x > 0 && y > 0: (0, PI/2)

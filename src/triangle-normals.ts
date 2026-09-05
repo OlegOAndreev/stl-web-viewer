@@ -1,7 +1,7 @@
 import { BufferAttribute, BufferGeometry, Vector3 } from 'three';
 
-// Return two geometries containing pairs of points: one containing line segments for pointing normals and one for
-// inward pointing normals.
+// Return two geometries containing pairs of points: one containing line segments for outward pointing normals and one
+// for inward pointing normals.
 export function computeTriangleNormals(geo: BufferGeometry): [BufferGeometry, BufferGeometry] {
     if (geo.index != null) {
         geo = geo.toNonIndexed();

@@ -1,16 +1,16 @@
 use std::f32::consts::PI;
 use wasm_bindgen::prelude::*;
 
-/// An alternative to atan2 when all you need is comparing angles. It maps all values of y/x to the range (-PI, PI) and keeps
-/// almost the same order as atan2: notAtan2(y1, x1) < notAtan2(y2, x2) is true when atan2(y1, x1) < atan2(y2, x2) is
-/// true, unless either a) the return values differ only in a few ULP (see tests) or b) inputs are BOTH zeros or
-/// infinitys.
+/// An alternative to atan2 when all you need is comparing angles. It maps all values of y/x to the range [-PI, PI] and
+/// keeps almost the same order as atan2: notAtan2(y1, x1) < notAtan2(y2, x2) is true when atan2(y1, x1) < atan2(y2, x2)
+/// is true, unless either a) the return values differ only in a few ULP (see tests) or b) inputs are BOTH zeros or
+/// infinities.
 ///
 /// This is a Rust version of not-atan.ts, exported for benchmarking.
 #[wasm_bindgen]
 pub fn not_atan2(y: f32, x: f32) -> f32 {
     // Returned ranges:
-    //   x > 0 && y > 0: (0, PI/2)Ў
+    //   x > 0 && y > 0: (0, PI/2)
     //   x > 0 && y < 0: (-PI/2, 0)
     //   x < 0 && y > 0: (PI/2, PI)
     //   x < 0 && y < 0: (-PI, -PI/2)

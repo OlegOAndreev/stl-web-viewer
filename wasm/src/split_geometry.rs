@@ -33,8 +33,6 @@ fn find_next_triangle_with_shared_edge(v1: Vector3, v2: Vector3, v3: Vector3, tr
     // that range (basically what Math.atan2 does).
     let mut best_tri_idx = usize::MAX;
     let mut best_angle = -f32::INFINITY;
-    // Match TypeScript: epsilon = 1e-3 * edgeVec.length()
-    let epsilon = 0.001 * edge_vec.length();
 
     for tri in tris {
         // dot = curNormal * tri.triNormal, cross = (curNormal x tri.triNormal) * edgeVec, cotan = dot / cross,
@@ -45,7 +43,7 @@ fn find_next_triangle_with_shared_edge(v1: Vector3, v2: Vector3, v3: Vector3, tr
         let mut angle = not_atan2(cross, dot);
         // If the angle is too close to PI, the triangles are almost parallel, consider them to be parallel and
         // belonging to different bodies.
-        if angle > PI - epsilon {
+        if angle > PI - 0.001 {
             angle = -PI;
         }
         if angle > best_angle {
@@ -209,9 +207,8 @@ mod tests {
     fn test_two_disjoint_triangles() {
         // Two triangles far apart
         let pos = [
-            // triangle 1
-            0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, // triangle 2
-            10.0, 0.0, 0.0, 11.0, 0.0, 0.0, 10.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, // triangle 1
+            10.0, 0.0, 0.0, 11.0, 0.0, 0.0, 10.0, 1.0, 0.0, // triangle 2
         ];
         let result = split_disjoint_geometry(&pos);
         assert_eq!(result.len(), 2);
