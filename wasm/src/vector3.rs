@@ -53,10 +53,16 @@ impl Eq for Vector3 {}
 
 impl Hash for Vector3 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.x.to_bits().hash(state);
-        self.y.to_bits().hash(state);
-        self.z.to_bits().hash(state);
+        hash_f32(self.x, state);
+        hash_f32(self.y, state);
+        hash_f32(self.z, state);
     }
+}
+
+// Hash a float consistently with the float equality used by PartialEq: -0.0 == 0.0 but their bit patterns differ.
+fn hash_f32<H: Hasher>(value: f32, state: &mut H) {
+    let bits = if value == 0.0 { 0 } else { value.to_bits() };
+    bits.hash(state);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

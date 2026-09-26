@@ -7,8 +7,7 @@ set -e
 # Latest wasm-pack release was too long ago and now a few of dependencies are vulnerable, which is annoying.
 # Run wasm-bindgen and wasm-opt ourselves as outlined here: https://fourteenscrews.com/essays/look-ma-no-wasm-pack/
 
-#BUILD_PROFILE="release"
-BUILD_PROFILE="dev"
+BUILD_PROFILE=${BUILD_PROFILE:-release}
 
 echo "Building with profile: $BUILD_PROFILE"
 
@@ -25,6 +24,10 @@ case $BUILD_PROFILE in
     ;;
   "release")
     WASM_INPUT="./target/$WASM_TARGET/release/wasm_main_module.wasm"
+    ;;
+  *)
+    echo "Error: Unknown build profile \"$BUILD_PROFILE\", expected \"dev\" or \"release\""
+    exit 1
     ;;
 esac
 if [ ! -f "$WASM_INPUT" ]; then
@@ -55,7 +58,7 @@ echo "Patching wasm_main_module.js to disable FinalizationRegistry..."
 # Use sed compatible with both macOS and Linux
 sed -i.bak "s/(typeof FinalizationRegistry === 'undefined')/(true)/g" "$BUILD_DIR/wasm_main_module.js" && rm -f "$BUILD_DIR/wasm_main_module.js.bak"
 
-if [ $BUILD_PROFILE == "release" ]; then
+if [ "$BUILD_PROFILE" = "release" ]; then
   echo "Running wasm-opt for optimization..."
   WASM_OPT=../node_modules/binaryen/bin/wasm-opt
   WASM_OUTPUT="$BUILD_DIR/wasm_main_module_bg.wasm"

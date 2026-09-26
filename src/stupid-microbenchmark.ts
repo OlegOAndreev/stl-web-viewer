@@ -85,11 +85,11 @@ export function stupidMicroBenchmarkSimple(module: RustModule): string {
     result += `TypedArray Math.atan2: ${typedArrayMathAtan2}ms\n`;
     result += `TypedArray notAtan2: ${typedArrayNotAtan2}ms\n`;
     result += `TypedArray Rust not_atan2: ${typedArrayRustNotAtan2}ms\n`;
-    result += `TypedArray Rust not_atan2 module: ${typedArrayRustNotAtan2Module}ms\n`;
+    result += `TypedArray Rust not_atan2 (raw): ${typedArrayRustNotAtan2Module}ms\n`;
     result += `Array Math.atan2: ${arrayMathAtan2}ms\n`;
     result += `Array notAtan2: ${arrayNotAtan2}ms\n`;
     result += `Array Rust not_atan2: ${arrayRustNotAtan2}ms\n`;
-    result += `Array Rust not_atan2 module: ${arrayRustNotAtan2Module}ms\n`;
+    result += `Array Rust not_atan2 (raw): ${arrayRustNotAtan2Module}ms\n`;
 
     console.log(`Finished stupidMicroBenchmarkSimple in ${performance.now() - totalStartTime}ms`)
     return result;
@@ -137,7 +137,7 @@ function tripleRustArray(n: number) {
     }
 }
 
-function tripleRustArrayVec(module: RustModule, n: number) {
+function tripleRustArrayVec(memory: WebAssembly.Memory, n: number) {
     const base = 543.2;
     // We do not want to benchmark JS GC, save the last array.
     if (cachedInput === undefined || cachedInput.length !== n) {
@@ -149,12 +149,12 @@ function tripleRustArrayVec(module: RustModule, n: number) {
     const inputVec = new Float32Vec(n);
     // array is much slower on Firefox (a bit slower on Chrome) than creating Float32Array in JS
     // inputVec.array.set(cachedInput);
-    const input = new Float32Array(module.memory.buffer, inputVec.data_ptr, n);
+    const input = new Float32Array(memory.buffer, inputVec.data_ptr, n);
     input.set(cachedInput);
 
     const resultVec = triple_array_with_vec(inputVec);
     // const result = resultVec.array;
-    const result = new Float32Array(module.memory.buffer, resultVec.data_ptr, resultVec.len);
+    const result = new Float32Array(memory.buffer, resultVec.data_ptr, resultVec.len);
     const lastResult = result[result.length - 1];
     const resultDiff = lastResult - 3 * (base + n - 1);
     // Account for difference between float and double.
@@ -190,12 +190,12 @@ function tripleRustArrayVecV2(n: number) {
     inputVec.free();
 }
 
-function tripleRustArrayVecNoCopy(module: RustModule, n: number) {
+function tripleRustArrayVecNoCopy(memory: WebAssembly.Memory, n: number) {
     const base = 3546.2;
     const inputVec = new Float32Vec(n);
     // See comment in tripleRustArrayVec
     // const input = inputVec.array;
-    const input = new Float32Array(module.memory.buffer, inputVec.data_ptr, n);
+    const input = new Float32Array(memory.buffer, inputVec.data_ptr, n);
     for (let i = 0; i < n; i++) {
         input[i] = base + i;
     }
@@ -203,7 +203,7 @@ function tripleRustArrayVecNoCopy(module: RustModule, n: number) {
     const resultVec = triple_array_with_vec(inputVec);
     // See comment above
     // const result = resultVec.array;
-    const result = new Float32Array(module.memory.buffer, resultVec.data_ptr, resultVec.len);
+    const result = new Float32Array(memory.buffer, resultVec.data_ptr, resultVec.len);
     const lastResult = result[result.length - 1];
     const resultDiff = lastResult - 3 * (base + n - 1);
     // Account for difference between float and double.
@@ -218,17 +218,17 @@ let resultSpanPtr: number;
 
 // Similar to HEAPF32 in Emscripten.
 let heapF32: Float32Array = new Float32Array();
-function checkHeapF32(module: RustModule) {
+function checkHeapF32(memory: WebAssembly.Memory) {
     if (heapF32.buffer.byteLength === 0) {
-        heapF32 = new Float32Array(module.memory.buffer);
+        heapF32 = new Float32Array(memory.buffer);
     }
 }
 
 // Similar to HEAPU32 in Emscripten.
 let heapU32: Uint32Array = new Uint32Array();
-function checkHeapU32(module: RustModule) {
+function checkHeapU32(memory: WebAssembly.Memory) {
     if (heapU32.buffer.byteLength === 0) {
-        heapU32 = new Uint32Array(module.memory.buffer);
+        heapU32 = new Uint32Array(memory.buffer);
     }
 }
 
@@ -239,16 +239,16 @@ function tripleRustArrayRaw(module: RustModule, n: number) {
 
     const base = 4567.89;
     const inputDataPtr = module.alloc(n * 4);
-    checkHeapF32(module);
+    checkHeapF32(module.memory);
     for (let i = 0; i < n; i++) {
         heapF32[inputDataPtr / 4 + i] = base + i;
     }
 
     module.triple_array_raw(resultSpanPtr, inputDataPtr, n);
-    checkHeapU32(module);
+    checkHeapU32(module.memory);
     const resultDataPtr = heapU32[resultSpanPtr / 4];
     const resultLen = heapU32[resultSpanPtr / 4 + 1];
-    checkHeapF32(module);
+    checkHeapF32(module.memory);
     const lastResult = heapF32[resultDataPtr / 4 + resultLen - 1];
     const resultDiff = lastResult - 3 * (base + n - 1);
     // Account for difference between float and double.
@@ -305,7 +305,7 @@ export function stupidMicroBenchmarkArrays(module: RustModule): string {
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleRustArrayVec(module, 100);
+            tripleRustArrayVec(module.memory, 100);
         }
         rustArrayVec100.push((performance.now() - startTime).toFixed(0));
 
@@ -317,7 +317,7 @@ export function stupidMicroBenchmarkArrays(module: RustModule): string {
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 100; j++) {
-            tripleRustArrayVecNoCopy(module, 100);
+            tripleRustArrayVecNoCopy(module.memory, 100);
         }
         rustArrayVecNoCopy100.push((performance.now() - startTime).toFixed(0));
 
@@ -347,7 +347,7 @@ export function stupidMicroBenchmarkArrays(module: RustModule): string {
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleRustArrayVec(module, 10000);
+            tripleRustArrayVec(module.memory, 10000);
         }
         rustArrayVec10000.push((performance.now() - startTime).toFixed(0));
 
@@ -359,7 +359,7 @@ export function stupidMicroBenchmarkArrays(module: RustModule): string {
 
         startTime = performance.now();
         for (let j = 0; j < totalData / 10000; j++) {
-            tripleRustArrayVecNoCopy(module, 10000);
+            tripleRustArrayVecNoCopy(module.memory, 10000);
         }
         rustArrayVecNoCopy10000.push((performance.now() - startTime).toFixed(0));
 

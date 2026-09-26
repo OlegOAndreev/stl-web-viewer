@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
+use wasm_bindgen::prelude::*;
+
 use crate::not_atan::not_atan2;
 use crate::vector3::{Edge, Vector3};
 
@@ -12,8 +14,10 @@ struct TriangleInfo {
 
 // Find the next triangle to visit after triangle v1-v2-v3. All tris in tris share the edge v2-v1. The algorithm is
 // quadratic and not optimized (the optimized version would sort triangles by angle and do a binary search). We assume
-// that shared edge case is not too common (<100 vectors per edge).
+// that shared edge case is not too common (<100 vectors per edge). tris must not be empty.
 fn find_next_triangle_with_shared_edge(v1: Vector3, v2: Vector3, v3: Vector3, tris: &[TriangleInfo]) -> usize {
+    assert!(!tris.is_empty());
+
     // The fast case: only one triangle has the matching edge.
     if tris.len() == 1 {
         return tris[0].tri_idx;
@@ -31,7 +35,7 @@ fn find_next_triangle_with_shared_edge(v1: Vector3, v2: Vector3, v3: Vector3, tr
     // NOTE: We do not calculate the angles themselves and compare only cotangents based on the equality x < y <=>
     // cotan(x) > cotan(y) for x, y in [0, PI]. We then need to correctly process the cases when angles are outside of
     // that range (basically what Math.atan2 does).
-    let mut best_tri_idx = usize::MAX;
+    let mut best_tri = tris[0];
     let mut best_angle = -f32::INFINITY;
 
     for tri in tris {
@@ -48,25 +52,47 @@ fn find_next_triangle_with_shared_edge(v1: Vector3, v2: Vector3, v3: Vector3, tr
         }
         if angle > best_angle {
             best_angle = angle;
-            best_tri_idx = tri.tri_idx;
+            best_tri = *tri;
         }
     }
 
-    best_tri_idx
+    best_tri.tri_idx
 }
 
-/// Splits a triangle mesh into multiple meshes, where each mesh represents a disjoint body. Assumes T-junctions are
-/// accidental and the normals of each body are outward-facing. `pos` must contain interleaved array of x, y, z
-/// coordinates of vertices, 3 vertices (9 floats) per triangle. Returns a vector of parts, each part is a flat vector
-/// of 9 * triangle_count floats.
-#[allow(dead_code)]
-pub fn split_disjoint_geometry(pos: &[f32]) -> Vec<Vec<f32>> {
+/// Triangle indices of the disjoint bodies and the number of triangles in each body.
+#[wasm_bindgen]
+pub struct SplitGeometryResult {
+    tri_indices: Vec<u32>,
+    part_sizes: Vec<u32>,
+}
+
+#[wasm_bindgen]
+impl SplitGeometryResult {
+    /// Triangle indices of all bodies, concatenated body by body. This is a view into WASM memory, so it has to be read
+    /// before the object is freed and before any allocation grows the WASM memory.
+    #[wasm_bindgen(getter)]
+    pub fn tri_indices(&self) -> js_sys::Uint32Array {
+        unsafe { js_sys::Uint32Array::view(&self.tri_indices) }
+    }
+
+    /// Number of triangles in each body, see `tri_indices` for the memory lifetime.
+    #[wasm_bindgen(getter)]
+    pub fn part_sizes(&self) -> js_sys::Uint32Array {
+        unsafe { js_sys::Uint32Array::view(&self.part_sizes) }
+    }
+}
+
+// Splits a triangle mesh into multiple meshes, where each mesh represents a disjoint body. Assumes T-junctions are
+// accidental and the normals of each body are outward-facing. `pos` must contain interleaved array of x, y, z
+// coordinates of vertices, 3 vertices (9 floats) per triangle.
+#[wasm_bindgen]
+pub fn split_disjoint_geometry(pos: &[f32]) -> SplitGeometryResult {
     if !pos.len().is_multiple_of(9) {
-        return vec![];
+        return SplitGeometryResult { tri_indices: vec![], part_sizes: vec![] };
     }
     let tri_count = pos.len() / 9;
     if tri_count == 0 {
-        return vec![];
+        return SplitGeometryResult { tri_indices: vec![], part_sizes: vec![] };
     }
 
     // We find triangle neighbors by shared edges: if the triangle 2 has the same edge as triangle 1, but oriented the
@@ -103,19 +129,25 @@ pub fn split_disjoint_geometry(pos: &[f32]) -> Vec<Vec<f32>> {
 
     // A part is a list of triangle indices.
     let mut part = vec![];
-    let mut result = vec![];
 
     // Helper function to visit an edge and add neighboring triangle to the stack.
     let visit_edge = |stack: &mut Vec<usize>, visited: &mut [bool], v1: Vector3, v2: Vector3, v3: Vector3| {
         // We need the neighbor to have a reverse edge
-        if let Some(tris) = edge_map.get(&Edge::new(v2, v1)) {
-            let next_tri = find_next_triangle_with_shared_edge(v1, v2, v3, tris);
-            if !visited[next_tri] {
-                stack.push(next_tri);
-                visited[next_tri] = true;
-            }
+        let Some(tris) = edge_map.get(&Edge::new(v2, v1)) else {
+            return;
+        };
+        if tris.is_empty() {
+            return;
+        }
+        let next_tri = find_next_triangle_with_shared_edge(v1, v2, v3, tris);
+        if !visited[next_tri] {
+            stack.push(next_tri);
+            visited[next_tri] = true;
         }
     };
+
+    let mut tri_indices = Vec::with_capacity(tri_count);
+    let mut part_sizes = vec![];
 
     for start_tri_idx in 0..tri_count {
         if visited[start_tri_idx] {
@@ -128,7 +160,7 @@ pub fn split_disjoint_geometry(pos: &[f32]) -> Vec<Vec<f32>> {
         visited[start_tri_idx] = true;
 
         while let Some(next_tri_idx) = stack.pop() {
-            part.push(next_tri_idx);
+            part.push(next_tri_idx as u32);
 
             let off = next_tri_idx * 9;
             let v1 = Vector3::new(pos[off], pos[off + 1], pos[off + 2]);
@@ -141,18 +173,13 @@ pub fn split_disjoint_geometry(pos: &[f32]) -> Vec<Vec<f32>> {
             visit_edge(&mut stack, &mut visited, v3, v1, v2);
         }
 
-        // Copy triangle vertices into a new flat array
-        let mut part_pos = vec![0.0f32; part.len() * 9];
-        for (i, &tri_idx) in part.iter().enumerate() {
-            let src_start = tri_idx * 9;
-            let dst_start = i * 9;
-            part_pos[dst_start..dst_start + 9].copy_from_slice(&pos[src_start..src_start + 9]);
-        }
-        result.push(part_pos);
-        part.clear();
+        // Sort the triangles for better cache utilization.
+        part.sort_unstable();
+        part_sizes.push(part.len() as u32);
+        tri_indices.append(&mut part);
     }
 
-    result
+    SplitGeometryResult { tri_indices, part_sizes }
 }
 
 #[cfg(test)]
@@ -188,10 +215,48 @@ mod tests {
         result
     }
 
+    // Extracts the triangle indices of each body.
+    fn part_indices(result: &SplitGeometryResult) -> Vec<&[u32]> {
+        let mut parts = Vec::with_capacity(result.part_sizes.len());
+        let mut offset = 0;
+        for &size in &result.part_sizes {
+            let size = size as usize;
+            parts.push(&result.tri_indices[offset..offset + size]);
+            offset += size;
+        }
+        parts
+    }
+
+    // Extracts positions of the triangles with the given indices.
+    fn part_positions(pos: &[f32], tri_indices: &[u32]) -> Vec<f32> {
+        let mut result = Vec::with_capacity(tri_indices.len() * 9);
+        for &tri_idx in tri_indices {
+            let off = tri_idx as usize * 9;
+            result.extend_from_slice(&pos[off..off + 9]);
+        }
+        result
+    }
+
+    // Collects triangles of all bodies to compare them against the original mesh.
+    fn reassembled_tris(pos: &[f32], result: &SplitGeometryResult) -> HashSet<String> {
+        let mut tris = HashSet::new();
+        for part in part_indices(result) {
+            tris.extend(get_tris_set(&part_positions(pos, part)));
+        }
+        tris
+    }
+
     #[test]
     fn test_empty() {
         let result = split_disjoint_geometry(&[]);
-        assert_eq!(result.len(), 0);
+        assert_eq!(result.part_sizes.len(), 0);
+    }
+
+    #[test]
+    fn test_invalid_length() {
+        // Not a multiple of 9
+        let result = split_disjoint_geometry(&[0.0; 8]);
+        assert_eq!(result.part_sizes.len(), 0);
     }
 
     #[test]
@@ -199,8 +264,9 @@ mod tests {
         // A single triangle
         let pos = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0];
         let result = split_disjoint_geometry(&pos);
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0], pos);
+        let parts = part_indices(&result);
+        assert_eq!(parts.len(), 1);
+        assert_eq!(part_positions(&pos, parts[0]), pos);
     }
 
     #[test]
@@ -211,18 +277,14 @@ mod tests {
             10.0, 0.0, 0.0, 11.0, 0.0, 0.0, 10.0, 1.0, 0.0, // triangle 2
         ];
         let result = split_disjoint_geometry(&pos);
-        assert_eq!(result.len(), 2);
-        // Each part should have 9 floats
-        assert_eq!(result[0].len(), 9);
-        assert_eq!(result[1].len(), 9);
+        let parts = part_indices(&result);
+        assert_eq!(parts.len(), 2);
+        // Each part should have one triangle
+        assert_eq!(parts[0].len(), 1);
+        assert_eq!(parts[1].len(), 1);
 
         // Verify triangle sets match
-        let original_tris = get_tris_set(&pos);
-        let mut reassembled_tris = HashSet::new();
-        for part in &result {
-            reassembled_tris.extend(get_tris_set(part));
-        }
-        assert_eq!(&reassembled_tris, &original_tris);
+        assert_eq!(reassembled_tris(&pos, &result), get_tris_set(&pos));
     }
 
     #[test]
@@ -240,18 +302,18 @@ mod tests {
         let mut merged = cube1.clone();
         merged.extend_from_slice(&cube2);
 
-        let parts = split_disjoint_geometry(&merged);
-        // println!("Two separate cubes: found {} parts", parts.len());
+        let result = split_disjoint_geometry(&merged);
+        let parts = part_indices(&result);
         assert_eq!(parts.len(), 2, "Two separate cubes should be 2 parts");
 
-        // Each part should have 12 triangles (108 floats)
-        assert_eq!(parts[0].len(), 108);
-        assert_eq!(parts[1].len(), 108);
+        // Each part should have 12 triangles
+        assert_eq!(parts[0].len(), 12);
+        assert_eq!(parts[1].len(), 12);
+        assert_eq!(reassembled_tris(&merged, &result), get_tris_set(&merged));
     }
 
-    // Helper to create a simple cube geometry (12 triangles, 8 vertices)
-    // Returns flat array of 12*9 = 108 floats
-    // All faces have counter-clockwise winding when viewed from outside (outward-facing normals)
+    // Helper to create a simple cube geometry (12 triangles, 8 vertices). Returns flat array of 12*9 = 108 floats. All
+    // faces have counter-clockwise winding when viewed from outside (outward-facing normals)
     fn create_cube_geometry() -> Vec<f32> {
         // Cube vertices
         let vertices = [
@@ -286,17 +348,71 @@ mod tests {
         result
     }
 
+    // Helper to create an L-shaped bracket (20 triangles). The cross-section is the counter-clockwise polygon
+    // (0,0) -> (2,0) -> (2,1) -> (1,1) -> (1,2) -> (0,2) extruded along z from -0.5 to 0.5. The corner at (1, 1) is
+    // reflex, so the edge (1, 1, z) is the concave edge of the bracket. The notch has size 1x1, so a unit cube fits
+    // into it exactly.
+    // All faces have counter-clockwise winding when viewed from outside (outward-facing normals)
+    fn create_l_bracket_geometry() -> Vec<f32> {
+        let vertices = [
+            [0.0, 0.0, -0.5], // 0
+            [2.0, 0.0, -0.5], // 1
+            [2.0, 1.0, -0.5], // 2
+            [1.0, 1.0, -0.5], // 3: reflex corner of the cross-section
+            [1.0, 2.0, -0.5], // 4
+            [0.0, 2.0, -0.5], // 5
+            [0.0, 0.0, 0.5],  // 6
+            [2.0, 0.0, 0.5],  // 7
+            [2.0, 1.0, 0.5],  // 8
+            [1.0, 1.0, 0.5],  // 9
+            [1.0, 2.0, 0.5],  // 10
+            [0.0, 2.0, 0.5],  // 11
+        ];
+
+        // Faces (20 triangles) - all with consistent CCW winding (outward normals)
+        #[rustfmt::skip]
+        let faces = [
+            [0, 2, 1], [0, 3, 2], [0, 4, 3], [0, 5, 4], // front face (normal -Z)
+            [6, 7, 8], [6, 8, 9], [6, 9, 10], [6, 10, 11], // back face (normal +Z)
+            [0, 1, 7], [0, 7, 6], // bottom side (normal -Y)
+            [1, 2, 8], [1, 8, 7], // right side of the horizontal bar (normal +X)
+            [2, 3, 9], [2, 9, 8], // notch bottom side (normal +Y)
+            [3, 4, 10], [3, 10, 9], // notch left side (normal +X)
+            [4, 5, 11], [4, 11, 10], // top side (normal +Y)
+            [5, 0, 6], [5, 6, 11], // left side (normal -X)
+        ];
+
+        let mut result = Vec::with_capacity(20 * 9);
+        for face in faces {
+            for &vi in &face {
+                let v = vertices[vi];
+                result.extend_from_slice(&v);
+            }
+        }
+        result
+    }
+
+    // Translates all vertices of a position array by the given offset.
+    fn translate_pos(pos: &mut [f32], offset: [f32; 3]) {
+        for v in pos.chunks_exact_mut(3) {
+            v[0] += offset[0];
+            v[1] += offset[1];
+            v[2] += offset[2];
+        }
+    }
+
     #[test]
     fn test_cube() {
         // Single cube should remain as one part
         let cube_pos = create_cube_geometry();
         let cube_tris = get_tris_set(&cube_pos);
 
-        let parts = split_disjoint_geometry(&cube_pos);
+        let result = split_disjoint_geometry(&cube_pos);
+        let parts = part_indices(&result);
         assert_eq!(parts.len(), 1, "Single cube should be one part");
 
-        let part_tris = get_tris_set(&parts[0]);
-        assert_eq!(&part_tris, &cube_tris);
+        let part_tris = get_tris_set(&part_positions(&cube_pos, parts[0]));
+        assert_eq!(part_tris, cube_tris);
     }
 
     #[test]
@@ -323,12 +439,13 @@ mod tests {
         let cube1_tris = get_tris_set(&cube1);
         let cube2_tris = get_tris_set(&cube2_translated);
 
-        let parts = split_disjoint_geometry(&merged);
+        let result = split_disjoint_geometry(&merged);
+        let parts = part_indices(&result);
         assert_eq!(parts.len(), 2, "Expected 2 parts for contacting cubes, got {}", parts.len());
 
         // Check that each part matches one of the original cubes
-        let part0_tris = get_tris_set(&parts[0]);
-        let part1_tris = get_tris_set(&parts[1]);
+        let part0_tris = get_tris_set(&part_positions(&merged, parts[0]));
+        let part1_tris = get_tris_set(&part_positions(&merged, parts[1]));
 
         // One part should match cube1, the other cube2
         if part0_tris == cube1_tris {
@@ -341,11 +458,81 @@ mod tests {
     }
 
     #[test]
-    fn test_angles() {
-        // Two pairs of triangles each forming an angle, all sharing one edge.
-        // Similar to TypeScript test but with simpler coordinates
+    fn test_edge_touching_cubes() {
+        // Two cubes touching along a single edge (no shared faces): cube2 is translated by (1, 1, 0), so the cubes
+        // share only the edge (0.5, 0.5, z). That edge has 4 triangles (2 per cube), and the splitter must pick the
+        // same-body neighbor by the largest angle between the triangle normals.
+        let cube1 = create_cube_geometry();
+        let mut cube2 = create_cube_geometry();
+        translate_pos(&mut cube2, [1.0, 1.0, 0.0]);
 
-        // First angle: two triangles sharing edge (0,0,0)-(1,0,0)
+        // Merge the two cubes
+        let mut merged = cube1.clone();
+        merged.extend_from_slice(&cube2);
+
+        let cube1_tris = get_tris_set(&cube1);
+        let cube2_tris = get_tris_set(&cube2);
+
+        let result = split_disjoint_geometry(&merged);
+        let parts = part_indices(&result);
+        assert_eq!(parts.len(), 2, "Expected 2 parts for edge-touching cubes, got {}", parts.len());
+        let mut sizes: Vec<usize> = parts.iter().map(|part| part.len()).collect();
+        sizes.sort_unstable();
+        assert_eq!(sizes, vec![12usize, 12], "Each cube must have 12 triangles");
+
+        // Check that each part matches one of the original cubes
+        let part0_tris = get_tris_set(&part_positions(&merged, parts[0]));
+        let part1_tris = get_tris_set(&part_positions(&merged, parts[1]));
+        if part0_tris == cube1_tris {
+            assert_eq!(part1_tris, cube2_tris);
+        } else if part0_tris == cube2_tris {
+            assert_eq!(part1_tris, cube1_tris);
+        } else {
+            panic!("Neither part matches original cubes");
+        }
+    }
+
+    #[test]
+    fn test_concave_contact() {
+        // A cube sitting in the notch of an L-shaped bracket: the cube touches the two faces of the notch, so the
+        // concave (reflex) edge of the bracket is shared by 4 triangles (2 per body). At that edge the fold between
+        // the two bracket faces is 270 degrees, which the largest angle heuristic scores as -PI/2, while the cube's
+        // antiparallel face across the edge is scored close to PI and clamped to -PI. So the bracket faces must win
+        // and the bodies must not be merged.
+        let bracket = create_l_bracket_geometry();
+        let mut cube = create_cube_geometry();
+        translate_pos(&mut cube, [1.5, 1.5, 0.0]);
+
+        // Merge the bracket and the cube
+        let mut merged = bracket.clone();
+        merged.extend_from_slice(&cube);
+
+        let bracket_tris = get_tris_set(&bracket);
+        let cube_tris = get_tris_set(&cube);
+
+        let result = split_disjoint_geometry(&merged);
+        let parts = part_indices(&result);
+        assert_eq!(parts.len(), 2, "Expected 2 parts for the bracket and the notch cube, got {}", parts.len());
+        let mut sizes: Vec<usize> = parts.iter().map(|part| part.len()).collect();
+        sizes.sort_unstable();
+        assert_eq!(sizes, vec![12usize, 20], "The bracket must have 20 triangles and the cube 12");
+
+        // Check that one part matches the bracket and the other the cube
+        let part0_tris = get_tris_set(&part_positions(&merged, parts[0]));
+        let part1_tris = get_tris_set(&part_positions(&merged, parts[1]));
+        if part0_tris == bracket_tris {
+            assert_eq!(part1_tris, cube_tris);
+        } else if part0_tris == cube_tris {
+            assert_eq!(part1_tris, bracket_tris);
+        } else {
+            panic!("Neither part matches the bracket or the cube");
+        }
+    }
+
+    #[test]
+    fn test_angles() {
+        // Two pairs of triangles each forming an angle, all sharing one edge. First angle: two triangles sharing edge
+        // (0,0,0)-(1,0,0)
         let angle0 = vec![
             // triangle 1
             0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, // triangle 2
@@ -366,11 +553,12 @@ mod tests {
         let angle0_tris = get_tris_set(&angle0);
         let angle1_tris = get_tris_set(&angle1);
 
-        let parts = split_disjoint_geometry(&merged);
+        let result = split_disjoint_geometry(&merged);
+        let parts = part_indices(&result);
         assert_eq!(parts.len(), 2);
 
-        let part0_tris = get_tris_set(&parts[0]);
-        let part1_tris = get_tris_set(&parts[1]);
+        let part0_tris = get_tris_set(&part_positions(&merged, parts[0]));
+        let part1_tris = get_tris_set(&part_positions(&merged, parts[1]));
 
         // One part should match angle0, the other angle1
         if part0_tris == angle0_tris {
@@ -383,9 +571,21 @@ mod tests {
     }
 
     #[test]
+    fn test_signed_zero_edges() {
+        // The triangles share the edge (0,0,0)-(1,0,0), but the second triangle stores the zero coordinates as -0.0.
+        // Since -0.0 == 0.0, the shared edge must still be found and both triangles must belong to the same body.
+        let pos = [
+            // triangle 0
+            0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, // triangle 1, sharing the reversed edge (1,0,0)-(0,0,0)
+            1.0, 0.0, 0.0, -0.0, -0.0, -0.0, 0.0, -1.0, 0.0,
+        ];
+        let result = split_disjoint_geometry(&pos);
+        assert_eq!(result.part_sizes.len(), 1, "Signed zeros must not split the body");
+    }
+
+    #[test]
     fn test_stress() {
         // Create many triangles from points on a cylinder-like shape
-        // Simplified version of TypeScript stress test
 
         // Generate some points on a circle
         let mut points = Vec::new();
@@ -424,17 +624,16 @@ mod tests {
 
         let num_geo_tris = pos.len() / 9;
 
-        // Check that we don't hang and have some basic sanity checks
-        let parts = split_disjoint_geometry(&pos);
+        // Check that we do not hang and have some basic sanity checks
+        let result = split_disjoint_geometry(&pos);
+        let parts = part_indices(&result);
         assert!(parts.len() > 1);
         assert!(parts.len() < num_geo_tris);
 
+        // Every triangle must be in exactly one part.
+        assert_eq!(parts.iter().map(|part| part.len()).sum::<usize>(), num_geo_tris);
+
         // Verify all triangles are accounted for
-        let original_tris = get_tris_set(&pos);
-        let mut reassembled_tris = HashSet::new();
-        for part in &parts {
-            reassembled_tris.extend(get_tris_set(part));
-        }
-        assert_eq!(&reassembled_tris, &original_tris);
+        assert_eq!(reassembled_tris(&pos, &result), get_tris_set(&pos));
     }
 }
