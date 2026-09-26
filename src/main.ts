@@ -24,6 +24,7 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { BufferGeometryUtils, TrackballControls } from 'three/examples/jsm/Addons.js';
 
 import { default as initRustModule } from '../wasm/build/wasm_main_module';
+import { IdleManager } from './idle-manager';
 import { splitDisjointGeometry } from './split-geometry';
 import { stupidMicroBenchmarkArrays, stupidMicroBenchmarkSimple } from './stupid-microbenchmark';
 import { computeTriangleNormals } from './triangle-normals';
@@ -124,7 +125,10 @@ let curModel = createDefaultModel();
 
 await loadSavedFile();
 
-renderer.setAnimationLoop(animate);
+const idleManager = new IdleManager(document, {
+    onStartIdle: () => renderer.setAnimationLoop(null),
+    onStopIdle: () => renderer.setAnimationLoop(animate),
+});
 
 function loadSettings(): Settings {
     const settings = {
@@ -330,6 +334,9 @@ async function onLoadFile(filename: string, contents: ArrayBuffer) {
     console.log(`Creating model from geo for ${filename} took ${deltaTime}ms`);
 
     console.log(`Successfully loaded file ${filename}`);
+
+    // Loading is asynchronous (file dialog, parsing), so the page may have gone idle by now.
+    idleManager.wake();
 }
 
 function createDefaultModel(): PreparedModel {
@@ -469,6 +476,9 @@ async function unloadModel() {
     setTitle('');
     disposeModel(curModel);
     curModel = createDefaultModel();
+
+    // Saving is asynchronous, so the page may have gone idle by now.
+    idleManager.wake();
 }
 
 function animate(_time: DOMHighResTimeStamp, _frame: XRFrame) {
