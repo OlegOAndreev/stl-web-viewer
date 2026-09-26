@@ -1,26 +1,28 @@
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
+use smallvec::SmallVec;
 use wasm_bindgen::prelude::*;
 
 use crate::not_atan::not_atan2;
 use crate::vector3::{Edge, Vector3};
 
-#[derive(Clone, Copy, Debug)]
-struct TriangleInfo {
-    tri_idx: usize,
-    tri_normal: Vector3,
-}
-
-// Find the next triangle to visit after triangle v1-v2-v3. All tris in tris share the edge v2-v1. The algorithm is
+// Find the next triangle to visit after triangle v1-v2-v3. All triangles in tris share the edge v2-v1. The algorithm is
 // quadratic and not optimized (the optimized version would sort triangles by angle and do a binary search). We assume
-// that shared edge case is not too common (<100 vectors per edge). tris must not be empty.
-fn find_next_triangle_with_shared_edge(v1: Vector3, v2: Vector3, v3: Vector3, tris: &[TriangleInfo]) -> usize {
-    assert!(!tris.is_empty());
+// that shared edge case is not too common (<100 vectors per edge). tris must not be empty and tri_normals must hold the
+// normal of every triangle of the mesh.
+fn find_next_triangle_with_shared_edge(
+    v1: Vector3,
+    v2: Vector3,
+    v3: Vector3,
+    edge_tris: &[u32],
+    tri_normals: &[Vector3],
+) -> u32 {
+    assert!(!edge_tris.is_empty());
 
     // The fast case: only one triangle has the matching edge.
-    if tris.len() == 1 {
-        return tris[0].tri_idx;
+    if edge_tris.len() == 1 {
+        return edge_tris[0];
     }
 
     // Normal of triangle v1-v2-v3
@@ -35,15 +37,16 @@ fn find_next_triangle_with_shared_edge(v1: Vector3, v2: Vector3, v3: Vector3, tr
     // NOTE: We do not calculate the angles themselves and compare only cotangents based on the equality x < y <=>
     // cotan(x) > cotan(y) for x, y in [0, PI]. We then need to correctly process the cases when angles are outside of
     // that range (basically what Math.atan2 does).
-    let mut best_tri = tris[0];
+    let mut best_tri_idx = edge_tris[0];
     let mut best_angle = -f32::INFINITY;
 
-    for tri in tris {
-        // dot = curNormal * tri.triNormal, cross = (curNormal x tri.triNormal) * edgeVec, cotan = dot / cross,
+    for &tri_idx in edge_tris {
+        let tri_normal = tri_normals[tri_idx as usize];
+        // dot = curNormal * triNormal, cross = (curNormal x triNormal) * edgeVec, cotan = dot / cross,
         // angle = notAtan2(cross, dot)
-        let dot = cur_tri_normal.dot(tri.tri_normal);
+        let dot = cur_tri_normal.dot(tri_normal);
         #[rustfmt::skip]
-        let cross = cur_tri_normal.cross(tri.tri_normal).dot(edge_vec);
+        let cross = cur_tri_normal.cross(tri_normal).dot(edge_vec);
         let mut angle = not_atan2(cross, dot);
         // If the angle is too close to PI, the triangles are almost parallel, consider them to be parallel and
         // belonging to different bodies.
@@ -52,11 +55,11 @@ fn find_next_triangle_with_shared_edge(v1: Vector3, v2: Vector3, v3: Vector3, tr
         }
         if angle > best_angle {
             best_angle = angle;
-            best_tri = *tri;
+            best_tri_idx = tri_idx;
         }
     }
 
-    best_tri.tri_idx
+    best_tri_idx
 }
 
 /// Triangle indices of the disjoint bodies and the number of triangles in each body.
@@ -104,23 +107,25 @@ pub fn split_disjoint_geometry(pos: &[f32]) -> SplitGeometryResult {
     // touching by the edge. In this case we assume that triangle normals point outside of the body. Then we can find
     // the nearest candidate triangle based on angle between triangle normals.
 
-    // Maps edge -> list of triangles with that edge.
-    let mut edge_map: HashMap<Edge, Vec<TriangleInfo>> = HashMap::with_capacity(3 * tri_count);
+    // Normal of each triangle, used to choose the neighbor across a shared edge.
+    let mut tri_normals = Vec::with_capacity(tri_count);
+    // Maps edge -> triangles with that edge. On average the edge is shared by exactly one triangle (mind that the edge
+    // is ordered), but we keep the SmallVec size of 2.
+    let mut edge_map: HashMap<Edge, SmallVec<[u32; 2]>> = HashMap::with_capacity(3 * tri_count);
 
     for tri_idx in 0..tri_count {
         let off = tri_idx * 9;
         let v1 = Vector3::new(pos[off], pos[off + 1], pos[off + 2]);
         let v2 = Vector3::new(pos[off + 3], pos[off + 4], pos[off + 5]);
         let v3 = Vector3::new(pos[off + 6], pos[off + 7], pos[off + 8]);
-        let tri_normal = (v2 - v1).cross(v3 - v1);
+        tri_normals.push((v2 - v1).cross(v3 - v1));
 
-        let tri_info = TriangleInfo { tri_idx, tri_normal };
         #[rustfmt::skip]
-        edge_map.entry(Edge::new(v1, v2)).or_default().push(tri_info);
+        edge_map.entry(Edge::new(v1, v2)).or_default().push(tri_idx as u32);
         #[rustfmt::skip]
-        edge_map.entry(Edge::new(v2, v3)).or_default().push(tri_info);
+        edge_map.entry(Edge::new(v2, v3)).or_default().push(tri_idx as u32);
         #[rustfmt::skip]
-        edge_map.entry(Edge::new(v3, v1)).or_default().push(tri_info);
+        edge_map.entry(Edge::new(v3, v1)).or_default().push(tri_idx as u32);
     }
 
     // Flag for each triangle if it has been visited.
@@ -134,13 +139,13 @@ pub fn split_disjoint_geometry(pos: &[f32]) -> SplitGeometryResult {
     // Helper function to visit an edge and add neighboring triangle to the stack.
     let visit_edge = |stack: &mut Vec<usize>, visited: &mut [bool], v1: Vector3, v2: Vector3, v3: Vector3| {
         // We need the neighbor to have a reverse edge
-        let Some(tris) = edge_map.get(&Edge::new(v2, v1)) else {
+        let Some(edge_tris) = edge_map.get(&Edge::new(v2, v1)) else {
             return;
         };
-        if tris.is_empty() {
+        if edge_tris.is_empty() {
             return;
         }
-        let next_tri = find_next_triangle_with_shared_edge(v1, v2, v3, tris);
+        let next_tri = find_next_triangle_with_shared_edge(v1, v2, v3, edge_tris, &tri_normals) as usize;
         if !visited[next_tri] {
             stack.push(next_tri);
             visited[next_tri] = true;
