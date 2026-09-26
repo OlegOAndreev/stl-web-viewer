@@ -84,7 +84,8 @@ impl SplitGeometryResult {
 
 // Splits a triangle mesh into multiple meshes, where each mesh represents a disjoint body. Assumes T-junctions are
 // accidental and the normals of each body are outward-facing. `pos` must contain interleaved array of x, y, z
-// coordinates of vertices, 3 vertices (9 floats) per triangle.
+// coordinates of vertices, 3 vertices (9 floats) per triangle. Returns triangle indices of each body; the caller is
+// responsible for splitting the attributes of the original mesh using these indices
 #[wasm_bindgen]
 pub fn split_disjoint_geometry(pos: &[f32]) -> SplitGeometryResult {
     if !pos.len().is_multiple_of(9) {
@@ -173,7 +174,7 @@ pub fn split_disjoint_geometry(pos: &[f32]) -> SplitGeometryResult {
             visit_edge(&mut stack, &mut visited, v3, v1, v2);
         }
 
-        // Sort the triangles for better cache utilization.
+        // Sort the triangles for better cache utilization in the caller.
         part.sort_unstable();
         part_sizes.push(part.len() as u32);
         tri_indices.append(&mut part);
