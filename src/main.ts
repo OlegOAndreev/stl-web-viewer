@@ -17,7 +17,7 @@ import {
     PerspectiveCamera,
     Scene,
     Vector3,
-    WebGLRenderer
+    WebGLRenderer,
 } from 'three';
 import Stats from 'three/addons/libs/stats.module.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
@@ -36,18 +36,15 @@ const FAR_Z = 10000.0;
 const MODEL_MIN_SIZE = 10.0;
 const MODEL_MAX_SIZE = 1000.0;
 const LINE_COLOR = 0x000000;
-const POSITIVE_NORMAL_COLOR = 0x00C000;
-const NEGATIVE_NORMAL_COLOR = 0xD00000;
-const BG_COLOR = 0xFFFFFF;
-const LIGHT_COLOR = 0xFFFFFF;
+const POSITIVE_NORMAL_COLOR = 0x00c000;
+const NEGATIVE_NORMAL_COLOR = 0xd00000;
+const BG_COLOR = 0xffffff;
+const LIGHT_COLOR = 0xffffff;
 const MODEL_COLOR = 0x808080;
 // Generated with https://paletton.com
 const FANCY_COLORS = [
-    0x804343, 0x805F43, 0x284D4D, 0x356735,
-    0x5E2F2F, 0x5E442F, 0x1C3838, 0x254B25,
-    0x3D1D1D, 0x3D2B1D, 0x112525, 0x173117,
-    0x541C1C, 0x54351C, 0x113232, 0x164316,
-    0x601515, 0x603715, 0x0D3A3A, 0x114D11,
+    0x804343, 0x805f43, 0x284d4d, 0x356735, 0x5e2f2f, 0x5e442f, 0x1c3838, 0x254b25, 0x3d1d1d, 0x3d2b1d, 0x112525,
+    0x173117, 0x541c1c, 0x54351c, 0x113232, 0x164316, 0x601515, 0x603715, 0x0d3a3a, 0x114d11,
 ];
 
 // We store settings into LocalStorage and last model into OPFS
@@ -62,7 +59,9 @@ if (!canvas) {
 }
 
 const opfsRoot = await navigator.storage.getDirectory();
-const savedModelHandle = await opfsRoot.getFileHandle(SAVED_MODEL_NAME, { create: true });
+const savedModelHandle = await opfsRoot.getFileHandle(SAVED_MODEL_NAME, {
+    create: true,
+});
 
 interface Settings {
     cameraIsPerspective: boolean;
@@ -115,9 +114,11 @@ const materials = {
 };
 
 interface PreparedModel {
+    geo: BufferGeometry;
     meshes: Mesh[];
     wireframes: LineSegments[];
-    normals: LineSegments[];
+    // Normals and wireframes are computed on the fly
+    normals: LineSegments[] | null;
 }
 let curModel = createDefaultModel();
 
@@ -162,34 +163,38 @@ function createGui(): GUI {
         }
     });
 
-    gui.add((() => fileInput.click()) as CallableFunction, 'call')
-        .name('Load File');
+    gui.add((() => fileInput.click()) as CallableFunction, 'call').name('Load File');
 
     const rFolder = gui.addFolder('Rendering');
-    rFolder.add(settings, 'cameraIsPerspective')
+    rFolder
+        .add(settings, 'cameraIsPerspective')
         .name('Perspective camera')
         .onChange((perspective: boolean) => {
             curControls.dispose();
-            curControls = createControls(perspective)
+            curControls = createControls(perspective);
         });
-    rFolder.add(settings, 'showWireframe')
+    rFolder
+        .add(settings, 'showWireframe')
         .name('Show wireframe')
         .onChange((_: boolean) => updateModelVisibility(curModel));
-    rFolder.add(settings, 'withLight')
+    rFolder
+        .add(settings, 'withLight')
         .name('Enable light')
-        .onChange((v: boolean) => directionalLight.visible = v);
-    rFolder.add(settings, 'withColors')
+        .onChange((v: boolean) => (directionalLight.visible = v));
+    rFolder
+        .add(settings, 'withColors')
         .name('Color parts')
-        .onChange((_: boolean) => updateModelMaterials(curModel))
+        .onChange((_: boolean) => updateModelMaterials(curModel));
     rFolder.close();
 
     const miscFolder = gui.addFolder('Misc');
-    miscFolder.add((() => unloadModel()) as CallableFunction, 'call')
-        .name('Unload File');
-    miscFolder.add(settings, 'showNormals')
+    miscFolder.add((() => unloadModel()) as CallableFunction, 'call').name('Unload File');
+    miscFolder
+        .add(settings, 'showNormals')
         .name('Show normals')
-        .onChange((_: boolean) => updateNormalsVisibility(curModel))
-    miscFolder.add(settings, 'showStats')
+        .onChange((_: boolean) => updateNormalsVisibility(curModel));
+    miscFolder
+        .add(settings, 'showStats')
         .name('Show stats')
         .onChange((v: boolean) => {
             statsPanel.dom.hidden = !v;
@@ -209,10 +214,12 @@ function createGui(): GUI {
         stupidMicroBenchmarkResultsToCopy = results;
         stupidMicroBenchmarkResults!.hidden = false;
         stupidMicroBenchmarkResults!.textContent = results + '\n[Click to copy]';
-    };
-    benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkSimple(rustModule))) as CallableFunction, 'call')
+    }
+    benchmarkFolder
+        .add((() => setBenchResults(stupidMicroBenchmarkSimple(rustModule))) as CallableFunction, 'call')
         .name('Run simple call');
-    benchmarkFolder.add((() => setBenchResults(stupidMicroBenchmarkArrays(rustModule))) as CallableFunction, 'call')
+    benchmarkFolder
+        .add((() => setBenchResults(stupidMicroBenchmarkArrays(rustModule))) as CallableFunction, 'call')
         .name('Run arrays');
     benchmarkFolder.close();
     miscFolder.close();
@@ -363,8 +370,6 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
     }
 
     const parts = splitDisjointGeometry(geo);
-    const normals = prepareNormals(geo);
-    geo.dispose();
 
     console.log(`Model got split into ${parts.length} parts`);
     const meshes: Mesh[] = [];
@@ -379,14 +384,12 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
         wireframes.push(wireframe);
         scene.add(wireframe);
     }
-    for (const normal of normals) {
-        scene.add(normal);
-    }
 
     const result: PreparedModel = {
+        geo: geo,
         meshes: meshes,
         wireframes: wireframes,
-        normals: normals,
+        normals: null,
     };
 
     updateModelVisibility(result);
@@ -397,6 +400,7 @@ function createModelFromGeo(geo: BufferGeometry): PreparedModel {
 }
 
 function disposeModel(model: PreparedModel) {
+    model.geo.dispose();
     for (let i = 0; i < model.meshes.length; i++) {
         scene.remove(model.meshes[i]);
         model.meshes[i].geometry.dispose();
@@ -405,9 +409,11 @@ function disposeModel(model: PreparedModel) {
         scene.remove(model.wireframes[i]);
         model.wireframes[i].geometry.dispose();
     }
-    for (let i = 0; i < model.normals.length; i++) {
-        scene.remove(model.normals[i]);
-        model.normals[i].geometry.dispose();
+    if (model.normals) {
+        for (let i = 0; i < model.normals.length; i++) {
+            scene.remove(model.normals[i]);
+            model.normals[i].geometry.dispose();
+        }
     }
 }
 
@@ -428,6 +434,16 @@ function updateModelMaterials(model: PreparedModel) {
 }
 
 function updateNormalsVisibility(model: PreparedModel) {
+    if (!model.normals) {
+        // Lazily initialize the normals when we first need them.
+        if (!settings.showNormals) {
+            return;
+        }
+        model.normals = prepareNormals(model.geo);
+        for (const normal of model.normals) {
+            scene.add(normal);
+        }
+    }
     for (let i = 0; i < model.normals.length; i++) {
         model.normals[i].visible = settings.showNormals;
     }
