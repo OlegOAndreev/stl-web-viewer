@@ -50,7 +50,7 @@ function extractPartGeometry(geo: BufferGeometry, triIndices: Uint32Array): Buff
 
         const itemSize = attr.itemSize;
         const newArray = new (attr.array.constructor as new (n: number) => TypedArray)(
-            triIndices.length * 3 * itemSize
+            triIndices.length * 3 * itemSize,
         );
         for (let i = 0; i < triIndices.length; i++) {
             const srcOffset = triIndices[i] * 3 * itemSize;

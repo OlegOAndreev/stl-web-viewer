@@ -1,6 +1,12 @@
-import type { InitOutput as RustModule } from "../wasm/build/wasm_main_module";
-import { Float32Vec, get_settings, not_atan2, triple_array, triple_array_with_vec } from "../wasm/build/wasm_main_module";
-import { notAtan2 } from "./not-atan";
+import type { InitOutput as RustModule } from '../wasm/build/wasm_main_module';
+import {
+    Float32Vec,
+    get_settings,
+    not_atan2,
+    triple_array,
+    triple_array_with_vec,
+} from '../wasm/build/wasm_main_module';
+import { notAtan2 } from './not-atan';
 
 // This is the stupidest micro-benchmark, but still useful for getting an idea on how much the function call costs.
 export function stupidMicroBenchmarkSimple(module: RustModule): string {
@@ -91,7 +97,7 @@ export function stupidMicroBenchmarkSimple(module: RustModule): string {
     result += `Array Rust not_atan2: ${arrayRustNotAtan2}ms\n`;
     result += `Array Rust not_atan2 (raw): ${arrayRustNotAtan2Module}ms\n`;
 
-    console.log(`Finished stupidMicroBenchmarkSimple in ${performance.now() - totalStartTime}ms`)
+    console.log(`Finished stupidMicroBenchmarkSimple in ${performance.now() - totalStartTime}ms`);
     return result;
 }
 
@@ -384,7 +390,7 @@ export function stupidMicroBenchmarkArrays(module: RustModule): string {
     result += `tripleRustArrayVecNoCopy(10000): ${rustArrayVecNoCopy10000}ms (per ${totalData / 10000} calls)\n`;
     result += `tripleRustArrayRaw(10000): ${rustArrayRaw10000}ms (per ${totalData / 10000} calls)\n`;
 
-    console.log(`Finished stupidMicroBenchmarkArrays in ${performance.now() - totalStartTime}ms`)
+    console.log(`Finished stupidMicroBenchmarkArrays in ${performance.now() - totalStartTime}ms`);
     return result;
 }
 

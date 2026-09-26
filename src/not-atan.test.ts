@@ -1,10 +1,10 @@
-import { assert, test } from 'vitest'
+import { assert, test } from 'vitest';
 
-import { notAtan2 } from './not-atan'
+import { notAtan2 } from './not-atan';
 
 test('notAtan2 boundaries', () => {
     // We test all possible combinations of values.
-    const values = [-Infinity, -1e+9, -1e+3, -1, -1e-3, -1e-9, -0, 0, 1e-9, 1e-3, 1, 1e+3, 1e+9, Infinity];
+    const values = [-Infinity, -1e9, -1e3, -1, -1e-3, -1e-9, -0, 0, 1e-9, 1e-3, 1, 1e3, 1e9, Infinity];
     for (let i = 0; i < values.length; i++) {
         const y = values[i];
         for (let j = 0; j < values.length; j++) {
@@ -28,7 +28,7 @@ test('notAtan2 consistent order', () => {
     }
 
     // We test all possible combinations of values.
-    const values = [-Infinity, -1e+9, -1e+3, -1, -1e-3, -1e-9, -0, 0, 1e-9, 1e-3, 1, 1e+3, 1e+9, Infinity];
+    const values = [-Infinity, -1e9, -1e3, -1, -1e-3, -1e-9, -0, 0, 1e-9, 1e-3, 1, 1e3, 1e9, Infinity];
     for (let i = 0; i < values.length; i++) {
         const y1 = values[i];
         for (let j = 0; j < values.length; j++) {

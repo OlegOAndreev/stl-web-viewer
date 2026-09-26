@@ -1,7 +1,7 @@
 import { BufferGeometry, Vector3 } from 'three';
 import { assert, test } from 'vitest';
 
-import { computeTriangleNormals } from "./triangle-normals";
+import { computeTriangleNormals } from './triangle-normals';
 
 test('computeTriangleNormals empty test', () => {
     const geo = new BufferGeometry().setFromPoints([]);
@@ -10,7 +10,7 @@ test('computeTriangleNormals empty test', () => {
     const inwardPoints = inwardGeometry.getAttribute('position');
     assert.equal(outwardPoints.count, 0);
     assert.equal(inwardPoints.count, 0);
-})
+});
 
 test('computeTriangleNormals basic test', () => {
     const geo = new BufferGeometry().setFromPoints([
@@ -24,7 +24,7 @@ test('computeTriangleNormals basic test', () => {
 
         new Vector3(1, 0, 0),
         new Vector3(0, 1, 0),
-        new Vector3(0, 0, 1)
+        new Vector3(0, 0, 1),
     ]);
 
     const [outwardGeometry, inwardGeometry] = computeTriangleNormals(geo);

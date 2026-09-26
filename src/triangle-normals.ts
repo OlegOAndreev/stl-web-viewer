@@ -29,9 +29,10 @@ export function computeTriangleNormals(geo: BufferGeometry): [BufferGeometry, Bu
         v1.set(pos[off], pos[off + 1], pos[off + 2]);
         v2.set(pos[off + 3], pos[off + 4], pos[off + 5]);
         v3.set(pos[off + 6], pos[off + 7], pos[off + 8]);
-        const midpoint = v1.clone().add(v2).add(v3)
-            .divideScalar(3.0);
-        const normal = v2.clone().sub(v1)
+        const midpoint = v1.clone().add(v2).add(v3).divideScalar(3.0);
+        const normal = v2
+            .clone()
+            .sub(v1)
             .cross(tmp.copy(v3).sub(v1))
             .setLength(modelRadius / 25.0);
         const negativeNormal = midpoint.clone().sub(normal);
@@ -42,8 +43,5 @@ export function computeTriangleNormals(geo: BufferGeometry): [BufferGeometry, Bu
         inwardPoints[triIdx * 2] = midpoint;
         inwardPoints[triIdx * 2 + 1] = negativeNormal;
     }
-    return [
-        new BufferGeometry().setFromPoints(outwardPoints),
-        new BufferGeometry().setFromPoints(inwardPoints)
-    ];
+    return [new BufferGeometry().setFromPoints(outwardPoints), new BufferGeometry().setFromPoints(inwardPoints)];
 }

@@ -1,57 +1,57 @@
 html,
 body {
-	margin: 0;
-	height: 100%;
-	overflow: hidden;
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
 
-	background-color: #fff;
-	color: #f0f;
+    background-color: #fff;
+    color: #f0f;
 }
 
 #threejs {
-	display: block;
-	width: 100%;
-	height: 100%;
-	background-color: #fff;
-	image-rendering: pixelated;
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    image-rendering: pixelated;
 }
 
 #stats-panel {
-	position: absolute;
-	right: 0;
-	bottom: 0;
-	cursor: pointer;
-	opacity: 0.8;
-	z-index: 10000;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    cursor: pointer;
+    opacity: 0.8;
+    z-index: 10000;
 }
 
 #stupid-micro-benchmark-results {
-	position: absolute;
-	right: 5px;
-	top: 5px;
-	font-size: 10px;
-	background-color: #002;
-	color: #DDE;
-	cursor: pointer;
-	font-family: Helvetica, Arial, sans-serif;
-	white-space: pre-wrap;
-	max-width: 300px;
-	padding: 5px;
-	user-select: none;
-	z-index: 10000;
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    font-size: 10px;
+    background-color: #002;
+    color: #dde;
+    cursor: pointer;
+    font-family: Helvetica, Arial, sans-serif;
+    white-space: pre-wrap;
+    max-width: 300px;
+    padding: 5px;
+    user-select: none;
+    z-index: 10000;
 }
 
 .lil-gui {
-	--font-size: 14px;
-	--input-font-size: 13px;
-	--padding: 5px;
-	--spacing: 5px;
-	--widget-height: 24px;
-	--widget-border-radius: 3px;
+    --font-size: 14px;
+    --input-font-size: 13px;
+    --padding: 5px;
+    --spacing: 5px;
+    --widget-height: 24px;
+    --widget-border-radius: 3px;
 }
 
 .lil-gui.lil-root {
-	position: absolute;
-	top: 5px;
-	left: 5px;
+    position: absolute;
+    top: 5px;
+    left: 5px;
 }
