@@ -1,11 +1,11 @@
-import type { InitOutput as RustModule } from '../wasm/build/wasm_main_module';
+import type { InitOutput as RustModule } from '../wasm/pkg/wasm_main_module';
 import {
     Float32Vec,
     get_settings,
     not_atan2,
     triple_array,
     triple_array_with_vec,
-} from '../wasm/build/wasm_main_module';
+} from '../wasm/pkg/wasm_main_module';
 import { notAtan2 } from './not-atan';
 
 // This is the stupidest micro-benchmark, but still useful for getting an idea on how much the function call costs.

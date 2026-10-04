@@ -2,7 +2,7 @@
 
 set -e
 
-# wasm-bindgen must be installed first using install-wasm-bindgen-cli.sh script
+# wasm-bindgen must be installed first using install-build-deps.sh script
 
 # Latest wasm-pack release was too long ago and now a few of dependencies are vulnerable, which is annoying.
 # Run wasm-bindgen and wasm-opt ourselves as outlined here: https://fourteenscrews.com/essays/look-ma-no-wasm-pack/
@@ -12,7 +12,8 @@ BUILD_PROFILE=${BUILD_PROFILE:-release}
 echo "Building with profile: $BUILD_PROFILE"
 
 cd `dirname $0`
-BUILD_DIR="./build"
+TOOLS_DIR="./target/tools"
+BUILD_DIR="./pkg"
 WASM_TARGET="wasm32-unknown-unknown"
 
 echo "Building WebAssembly module..."
@@ -28,14 +29,13 @@ case $BUILD_PROFILE in
   *)
     echo "Error: Unknown build profile \"$BUILD_PROFILE\", expected \"dev\" or \"release\""
     exit 1
-    ;;
 esac
 if [ ! -f "$WASM_INPUT" ]; then
     echo "Error: WebAssembly file not found at $WASM_INPUT"
     exit 1
 fi
 
-# Do not run wasm-bindgen (relatively fast) and wasm-opt (relatively slow) on null builds.
+# Do not run wasm-bindgen and wasm-opt on null builds.
 CURRENT_HASH=`sha256sum "$WASM_INPUT"`
 HASH_FILE="$BUILD_DIR/wasm_main_module.hash"
 if [ -f "$HASH_FILE" ]; then
@@ -47,7 +47,7 @@ if [ -f "$HASH_FILE" ]; then
 fi
 
 echo "Running wasm-bindgen..."
-time "$BUILD_DIR/bin/wasm-bindgen" --target web --out-dir "$BUILD_DIR" "$WASM_INPUT"
+time "$TOOLS_DIR/bin/wasm-bindgen" --target web --out-dir "$BUILD_DIR" "$WASM_INPUT"
 
 # We disable FinalizationRegistry for performance: registering/unregistering every return object by wasm-bindgen is
 # very slow on Firefox and moderately slow on Chrome. FinalizationRegistry is a not so great idea anyway, e.g. see
@@ -58,12 +58,11 @@ echo "Patching wasm_main_module.js to disable FinalizationRegistry..."
 # Use sed compatible with both macOS and Linux
 sed -i.bak "s/(typeof FinalizationRegistry === 'undefined')/(true)/g" "$BUILD_DIR/wasm_main_module.js" && rm -f "$BUILD_DIR/wasm_main_module.js.bak"
 
-if [ "$BUILD_PROFILE" = "release" ]; then
+if [ $BUILD_PROFILE == "release" ]; then
   echo "Running wasm-opt for optimization..."
   WASM_OPT=../node_modules/binaryen/bin/wasm-opt
   WASM_OUTPUT="$BUILD_DIR/wasm_main_module_bg.wasm"
-  time $WASM_OPT -O "$WASM_OUTPUT" -o "$WASM_OUTPUT.opt"
-  mv "$WASM_OUTPUT.opt" "$WASM_OUTPUT"
+  time $WASM_OPT -Os "$WASM_OUTPUT" -o "$WASM_OUTPUT"
 else
   echo "Skipping wasm-opt"
 fi

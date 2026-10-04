@@ -23,7 +23,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { BufferGeometryUtils, TrackballControls } from 'three/examples/jsm/Addons.js';
 
-import { default as initRustModule } from '../wasm/build/wasm_main_module';
+import { default as initRustModule } from '../wasm/pkg/wasm_main_module';
 import { IdleManager } from './idle-manager';
 import { splitDisjointGeometry } from './split-geometry';
 import { stupidMicroBenchmarkArrays, stupidMicroBenchmarkSimple } from './stupid-microbenchmark';

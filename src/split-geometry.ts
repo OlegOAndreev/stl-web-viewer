@@ -1,6 +1,6 @@
 import { BufferAttribute, BufferGeometry, type TypedArray } from 'three';
 
-import { split_disjoint_geometry } from '../wasm/build/wasm_main_module';
+import { split_disjoint_geometry } from '../wasm/pkg/wasm_main_module';
 
 // Splits a geometry into multiple geometries, where each geometry represents a separate body. Assumes T-junctions are
 // accidental and the normals of each body are outward-facing. The bodies are found by the Rust code; here we only
