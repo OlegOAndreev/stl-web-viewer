@@ -10,3 +10,15 @@ crate-type = ["cdylib"]
 js-sys = "0.3.83"
 smallvec = "1"
 wasm-bindgen = "0.2"
+
+[profile.dev]
+# Never build without optimizations
+opt-level = 1
+# We do not debug anyway
+debug = "line-tables-only"
+
+[profile.release]
+# Enable backtrace info
+# debug = "line-tables-only"
+# Enable this for faster builds
+debug = "none"
