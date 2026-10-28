@@ -1,0 +1,7 @@
+# Only format ts, js, html and css inside src/.
+*
+!*/
+!src/**/*.ts
+!src/**/*.js
+!src/**/*.html
+!src/**/*.css
