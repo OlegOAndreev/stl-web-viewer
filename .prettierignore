@@ -1,9 +1,0 @@
-# Format ts, js, html and css sources: everything in src/, plus the root entry HTML.
-*
-!*/
-!src/**/*.ts
-!src/**/*.js
-!src/**/*.html
-!src/**/*.css
-!index.html
-!*.ts
