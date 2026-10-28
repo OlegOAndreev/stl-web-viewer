@@ -1,14 +1,14 @@
-import type { UserConfig } from 'vite'
+import type { UserConfig } from 'vite';
 
 export default {
-  // For github pages
-  base: '/stl-web-viewer/',
+    // For github pages
+    base: '/stl-web-viewer/',
 
-  worker: {
-    format: 'es',
-  },
+    worker: {
+        format: 'es',
+    },
 
-  build: {
-    chunkSizeWarningLimit: 1500,
-  },
+    build: {
+        chunkSizeWarningLimit: 1500,
+    },
 } satisfies UserConfig;
