@@ -28,6 +28,7 @@ import { IdleManager } from './idle-manager';
 import { splitDisjointGeometry } from './split-geometry';
 import { stupidMicroBenchmarkArrays, stupidMicroBenchmarkSimple } from './stupid-microbenchmark';
 import { computeTriangleNormals } from './triangle-normals';
+import { setupWindowOnError } from './common-utils';
 
 const rustModule = await initRustModule();
 
@@ -53,6 +54,8 @@ const SETTINGS_KEY = 'stl-web-viewer-settings';
 const SAVED_MODEL_NAME = 'latest-model';
 
 let stupidMicroBenchmarkResultsToCopy = '';
+
+setupWindowOnError();
 
 const canvas = document.getElementById('threejs') as HTMLCanvasElement;
 if (!canvas) {
@@ -148,6 +151,10 @@ function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
+function addButton(folder: GUI, name: string, action: () => void) {
+    folder.add({ action }, 'action').name(name);
+}
+
 function createGui(): GUI {
     const gui = new GUI({ title: 'No File' });
 
@@ -162,12 +169,12 @@ function createGui(): GUI {
             const file = fileInput.files![0];
 
             const buffer = await file.arrayBuffer();
-            await onLoadFile(file.name, buffer);
+            onLoadFile(file.name, buffer);
             await saveFile(file.name, buffer);
         }
     });
 
-    gui.add((() => fileInput.click()) as CallableFunction, 'call').name('Load File');
+    addButton(gui, 'Load File', () => fileInput.click());
 
     const rFolder = gui.addFolder('Rendering');
     rFolder
@@ -192,7 +199,7 @@ function createGui(): GUI {
     rFolder.close();
 
     const miscFolder = gui.addFolder('Misc');
-    miscFolder.add((() => unloadModel()) as CallableFunction, 'call').name('Unload File');
+    addButton(miscFolder, 'Unload File', () => unloadModel());
     miscFolder
         .add(settings, 'showNormals')
         .name('Show normals')
@@ -211,7 +218,7 @@ function createGui(): GUI {
     }
     stupidMicroBenchmarkResults.hidden = true;
     stupidMicroBenchmarkResults.onclick = () => {
-        navigator.clipboard.writeText(stupidMicroBenchmarkResultsToCopy);
+        void navigator.clipboard.writeText(stupidMicroBenchmarkResultsToCopy);
         stupidMicroBenchmarkResults.hidden = true;
     };
     function setBenchResults(results: string) {
@@ -219,12 +226,8 @@ function createGui(): GUI {
         stupidMicroBenchmarkResults!.hidden = false;
         stupidMicroBenchmarkResults!.textContent = results + '\n[Click to copy]';
     }
-    benchmarkFolder
-        .add((() => setBenchResults(stupidMicroBenchmarkSimple(rustModule))) as CallableFunction, 'call')
-        .name('Run simple call');
-    benchmarkFolder
-        .add((() => setBenchResults(stupidMicroBenchmarkArrays(rustModule))) as CallableFunction, 'call')
-        .name('Run arrays');
+    addButton(benchmarkFolder, 'Run simple call', () => setBenchResults(stupidMicroBenchmarkSimple(rustModule)));
+    addButton(benchmarkFolder, 'Run arrays', () => setBenchResults(stupidMicroBenchmarkArrays(rustModule)));
     benchmarkFolder.close();
     miscFolder.close();
 
@@ -317,7 +320,7 @@ async function saveFile(filename: string, contents: ArrayBuffer) {
     console.log('Stored the contents to', savedModelHandle);
 }
 
-async function onLoadFile(filename: string, contents: ArrayBuffer) {
+function onLoadFile(filename: string, contents: ArrayBuffer) {
     console.log(`Loading file ${filename} with length ${contents.byteLength}`);
     const stlLoader = new STLLoader();
     let startTime = performance.now();

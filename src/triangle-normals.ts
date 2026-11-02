@@ -18,8 +18,8 @@ export function computeTriangleNormals(geo: BufferGeometry): [BufferGeometry, Bu
     }
     const pos = positionAttr.array;
     const triCount = pos.length / 9;
-    const outwardPoints: Vector3[] = new Array(triCount * 2);
-    const inwardPoints: Vector3[] = new Array(triCount * 2);
+    const outwardPoints = new Array<Vector3>(triCount * 2);
+    const inwardPoints = new Array<Vector3>(triCount * 2);
     const v1 = new Vector3();
     const v2 = new Vector3();
     const v3 = new Vector3();
