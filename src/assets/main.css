@@ -51,6 +51,7 @@ body {
 }
 
 .lil-gui.lil-root {
+    width: 275px;
     top: 5px;
     left: 5px;
 }

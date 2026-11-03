@@ -210,6 +210,14 @@ function createGui(): GUI {
         .onChange((v: boolean) => {
             statsPanel.dom.hidden = !v;
         });
+    miscFolder
+        .add(import.meta.env, 'VITE_BUILD_COMMIT')
+        .name('Build commit')
+        .disable();
+    miscFolder
+        .add(import.meta.env, 'VITE_BUILD_DATE')
+        .name('Build date')
+        .disable();
 
     const benchmarkFolder = miscFolder.addFolder('Stupid benchmarks');
     const stupidMicroBenchmarkResults = document.getElementById('stupid-micro-benchmark-results');
