@@ -8,6 +8,18 @@ body {
     color: #f0f;
 }
 
+#loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.5);
+    color: gray;
+    font-family: system-ui, sans-serif;
+}
+
 #threejs {
     display: block;
     width: 100%;

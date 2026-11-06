@@ -10,8 +10,10 @@
   </head>
 
   <body>
+    <div id="loading-overlay" style="visibility: hidden"></div>
+
     <canvas id="threejs" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-    <input type="file" id="file-input" accept=".stl" hidden />
+    <input type="file" id="file-input" accept=".stl" style="visibility: hidden"/>
     <div id="stupid-micro-benchmark-results"></div>
   </body>
 </html>

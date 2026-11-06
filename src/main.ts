@@ -20,17 +20,45 @@ import {
     WebGLRenderer,
 } from 'three';
 import Stats from 'three/addons/libs/stats.module.js';
+import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { BufferGeometryUtils, TrackballControls } from 'three/examples/jsm/Addons.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
-import { default as initRustModule } from '../wasm/pkg/wasm_main_module';
+import { default as initRustModule, type InitOutput } from '../wasm/pkg/wasm_main_module';
 import { IdleManager } from './idle-manager';
 import { splitDisjointGeometry } from './split-geometry';
 import { stupidMicroBenchmarkArrays, stupidMicroBenchmarkSimple } from './stupid-microbenchmark';
 import { computeTriangleNormals } from './triangle-normals';
-import { setupWindowOnError } from './common-utils';
+import { anyToString, getById, setupWindowOnError } from './common-utils';
+import { showError } from './notify';
 
-const rustModule = await initRustModule();
+// Delay before showing the loading overlay: avoids flashing it on fast operations.
+const LOADING_OVERLAY_DELAY = 250;
+
+setupWindowOnError();
+
+const loadingOverlay = getById<HTMLDivElement>('loading-overlay');
+
+async function showLoadingOverlay(text: string, f: () => Promise<void>) {
+    loadingOverlay.innerText = text;
+    const loadingOverlayTimer = setTimeout(() => {
+        loadingOverlay.style.visibility = 'visible';
+    }, LOADING_OVERLAY_DELAY);
+    await f();
+    clearTimeout(loadingOverlayTimer);
+    loadingOverlay.style.visibility = 'hidden';
+}
+
+// Initialize wasm
+let rustModule: InitOutput;
+await showLoadingOverlay('Initializing WebAssembly...', async () => {
+    try {
+        rustModule = await initRustModule();
+    } catch (error) {
+        showError(`WASM init failed: ${anyToString(error)}`);
+        throw error;
+    }
+});
 
 const FOV = 80;
 const NEAR_Z = 0.1;
@@ -54,8 +82,6 @@ const SETTINGS_KEY = 'stl-web-viewer-settings';
 const SAVED_MODEL_NAME = 'latest-model';
 
 let stupidMicroBenchmarkResultsToCopy = '';
-
-setupWindowOnError();
 
 const canvas = document.getElementById('threejs') as HTMLCanvasElement;
 if (!canvas) {
@@ -101,6 +127,11 @@ updateCanvasSize();
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setClearColor(new Color(BG_COLOR), 1.0);
 
+const idleManager = new IdleManager(document, {
+    onStartIdle: () => renderer.setAnimationLoop(null),
+    onStopIdle: () => renderer.setAnimationLoop(animate),
+});
+
 const directionalLight = createLight();
 
 const materials = {
@@ -126,11 +157,8 @@ interface PreparedModel {
 }
 let curModel = createDefaultModel();
 
-await loadSavedFile();
-
-const idleManager = new IdleManager(document, {
-    onStartIdle: () => renderer.setAnimationLoop(null),
-    onStopIdle: () => renderer.setAnimationLoop(animate),
+await showLoadingOverlay('Loading saved model...', async () => {
+    await loadSavedFile();
 });
 
 function loadSettings(): Settings {
@@ -168,9 +196,11 @@ function createGui(): GUI {
         if (fileInput.files!.length > 0) {
             const file = fileInput.files![0];
 
-            const buffer = await file.arrayBuffer();
-            onLoadFile(file.name, buffer);
-            await saveFile(file.name, buffer);
+            await showLoadingOverlay('Loading model...', async () => {
+                const buffer = await file.arrayBuffer();
+                onLoadFile(file.name, buffer);
+                await saveFile(file.name, buffer);
+            });
         }
     });
 
@@ -313,9 +343,18 @@ async function loadSavedFile() {
     console.log('Loading stored model', settings.latestModelName);
     const file = await savedModelHandle.getFile();
     const reader = new FileReader();
-    reader.onload = () => onLoadFile(settings.latestModelName, reader.result as ArrayBuffer);
-    reader.onerror = () => console.log('File loading failed');
-    reader.readAsArrayBuffer(file);
+    const promise = new Promise<void>((resolve, reject) => {
+        reader.onload = () => {
+            onLoadFile(settings.latestModelName, reader.result as ArrayBuffer);
+            resolve();
+        };
+        reader.onerror = () => {
+            console.log('File loading failed');
+            reject(new Error('File loading failed'));
+        };
+        reader.readAsArrayBuffer(file);
+    });
+    return promise;
 }
 
 async function saveFile(filename: string, contents: ArrayBuffer) {
